@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CreditCard, Building, Truck, Briefcase, Users, ShoppingCart, Power } from 'lucide-react';
+import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CreditCard, Building, Truck, Briefcase, Users, ShoppingCart, Power, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from "sonner";
 
@@ -41,6 +40,7 @@ export const ExpenseManagement = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<boolean | null>(null);
   const [expensesData, setExpensesData] = useState<ExpenseData[]>(expenses);
+  const [actionMenuOpen, setActionMenuOpen] = useState<number | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -121,6 +121,19 @@ export const ExpenseManagement = () => {
     
     // Show success toast
     toast.success("Despesa adicionada com sucesso!");
+  };
+
+  const handleDeleteExpense = (id: number) => {
+    // Filter out the expense with the given id
+    const updatedExpenses = expensesData.filter(expense => expense.id !== id);
+    setExpensesData(updatedExpenses);
+    setActionMenuOpen(null);
+    toast.success("Despesa excluída com sucesso!");
+  };
+
+  const handleDeleteAllExpenses = () => {
+    setExpensesData([]);
+    toast.success("Todas as despesas foram excluídas com sucesso!");
   };
 
   return (
@@ -222,13 +235,25 @@ export const ExpenseManagement = () => {
               </button>
             </div>
             
-            <button 
-              onClick={() => setIsAddModalOpen(true)}
-              className="premium-button flex items-center space-x-2"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Nova Despesa</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="premium-button flex items-center space-x-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Nova Despesa</span>
+              </button>
+              
+              {expensesData.length > 0 && (
+                <button 
+                  onClick={handleDeleteAllExpenses}
+                  className="flex items-center space-x-2 px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Excluir Tudo</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
         
@@ -313,10 +338,27 @@ export const ExpenseManagement = () => {
                         {expense.isPaid ? 'Pago' : 'A Pagar'}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-right">
-                      <button className="text-muted-foreground hover:text-foreground transition-colors">
+                    <td className="px-4 py-4 text-right relative">
+                      <button 
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => setActionMenuOpen(actionMenuOpen === expense.id ? null : expense.id)}
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </button>
+                      
+                      {actionMenuOpen === expense.id && (
+                        <div className="absolute right-4 mt-2 w-48 rounded-md shadow-lg bg-white z-10 border border-border">
+                          <div className="py-1" role="menu" aria-orientation="vertical">
+                            <button 
+                              className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                              onClick={() => handleDeleteExpense(expense.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir despesa
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </td>
                   </motion.tr>
                 );
@@ -445,3 +487,4 @@ export const ExpenseManagement = () => {
     </motion.div>
   );
 };
+
