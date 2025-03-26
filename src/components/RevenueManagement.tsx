@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from "sonner";
 
 interface ServiceData {
   id: number;
@@ -46,8 +47,27 @@ export const RevenueManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [servicesData, setServicesData] = useState<ServiceData[]>(services);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    serviceType: '',
+    clientName: '',
+    serviceValue: '',
+    serviceDate: '',
+    paymentMethod: '',
+    paymentStatus: '',
+  });
 
-  const filteredServices = services.filter(service => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id.replace('-', '')]: value,
+    }));
+  };
+
+  const filteredServices = servicesData.filter(service => {
     const matchesSearch = 
       service.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
       service.client.toLowerCase().includes(searchTerm.toLowerCase());
@@ -56,6 +76,46 @@ export const RevenueManagement = () => {
     
     return matchesSearch && matchesStatus;
   });
+
+  const handleSaveService = () => {
+    // Validate form
+    if (!formData.serviceType || !formData.clientName || !formData.serviceValue || !formData.serviceDate || !formData.paymentStatus) {
+      toast.error("Por favor, preencha todos os campos obrigatórios.");
+      return;
+    }
+
+    // Format date to DD/MM/YYYY if it's in YYYY-MM-DD format
+    const formattedDate = formData.serviceDate.includes('-') 
+      ? formData.serviceDate.split('-').reverse().join('/') 
+      : formData.serviceDate;
+
+    // Create new service
+    const newService: ServiceData = {
+      id: servicesData.length + 1,
+      service: formData.serviceType,
+      client: formData.clientName,
+      value: formData.serviceValue.startsWith('R$') ? formData.serviceValue : `R$ ${formData.serviceValue}`,
+      date: formattedDate,
+      status: formData.paymentStatus as 'paid' | 'pending' | 'late',
+    };
+
+    // Add to services list
+    setServicesData([newService, ...servicesData]);
+    
+    // Close modal and reset form
+    setIsAddModalOpen(false);
+    setFormData({
+      serviceType: '',
+      clientName: '',
+      serviceValue: '',
+      serviceDate: '',
+      paymentMethod: '',
+      paymentStatus: '',
+    });
+    
+    // Show success toast
+    toast.success("Serviço adicionado com sucesso!");
+  };
 
   const statusColors = {
     paid: { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle },
@@ -265,7 +325,7 @@ export const RevenueManagement = () => {
               </button>
             </div>
 
-            <form>
+            <form onSubmit={(e) => e.preventDefault()}>
               <div className="space-y-4">
                 <div>
                   <label htmlFor="service-type" className="block text-sm font-medium mb-1">
@@ -274,8 +334,10 @@ export const RevenueManagement = () => {
                   <select
                     id="service-type"
                     className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
+                    value={formData.serviceType}
+                    onChange={handleInputChange}
                   >
-                    <option value="" disabled selected>Selecione o tipo de serviço</option>
+                    <option value="" disabled>Selecione o tipo de serviço</option>
                     {serviceTypes.map((type) => (
                       <option key={type} value={type}>{type}</option>
                     ))}
@@ -291,6 +353,8 @@ export const RevenueManagement = () => {
                     id="client-name"
                     placeholder="Ex: Família Silva"
                     className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
+                    value={formData.clientName}
+                    onChange={handleInputChange}
                   />
                 </div>
 
@@ -303,6 +367,8 @@ export const RevenueManagement = () => {
                     id="service-value"
                     placeholder="R$ 0,00"
                     className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
+                    value={formData.serviceValue}
+                    onChange={handleInputChange}
                   />
                 </div>
 
@@ -314,6 +380,8 @@ export const RevenueManagement = () => {
                     type="date"
                     id="service-date"
                     className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
+                    value={formData.serviceDate}
+                    onChange={handleInputChange}
                   />
                 </div>
 
@@ -324,8 +392,10 @@ export const RevenueManagement = () => {
                   <select
                     id="payment-method"
                     className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
+                    value={formData.paymentMethod}
+                    onChange={handleInputChange}
                   >
-                    <option value="" disabled selected>Selecione a forma de pagamento</option>
+                    <option value="" disabled>Selecione a forma de pagamento</option>
                     {paymentMethods.map((method) => (
                       <option key={method} value={method}>{method}</option>
                     ))}
@@ -339,10 +409,13 @@ export const RevenueManagement = () => {
                   <select
                     id="payment-status"
                     className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
+                    value={formData.paymentStatus}
+                    onChange={handleInputChange}
                   >
-                    <option value="" disabled selected>Selecione o status</option>
+                    <option value="" disabled>Selecione o status</option>
                     <option value="paid">Pago</option>
                     <option value="pending">Pendente</option>
+                    <option value="late">Atrasado</option>
                   </select>
                 </div>
               </div>
@@ -357,6 +430,7 @@ export const RevenueManagement = () => {
                 </button>
                 <button
                   type="button"
+                  onClick={handleSaveService}
                   className="premium-button flex items-center space-x-2"
                 >
                   <Check className="h-4 w-4" />

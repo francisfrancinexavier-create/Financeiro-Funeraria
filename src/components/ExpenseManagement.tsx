@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CreditCard, Building, Truck, Briefcase, Users, ShoppingCart, Power } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from "sonner";
 
 interface ExpenseData {
   id: number;
@@ -39,8 +40,33 @@ export const ExpenseManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<boolean | null>(null);
+  const [expensesData, setExpensesData] = useState<ExpenseData[]>(expenses);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    description: '',
+    category: '',
+    value: '',
+    dueDate: '',
+    isPaid: false,
+  });
 
-  const filteredExpenses = expenses.filter(expense => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id.replace('expense-', '')]: value,
+    }));
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      isPaid: e.target.checked,
+    }));
+  };
+
+  const filteredExpenses = expensesData.filter(expense => {
     const matchesSearch = 
       expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       expense.category.toLowerCase().includes(searchTerm.toLowerCase());
@@ -49,6 +75,53 @@ export const ExpenseManagement = () => {
     
     return matchesSearch && matchesStatus;
   });
+
+  const handleSaveExpense = () => {
+    // Validate form
+    if (!formData.description || !formData.category || !formData.value || !formData.dueDate) {
+      toast.error("Por favor, preencha todos os campos obrigatórios.");
+      return;
+    }
+
+    // Find the icon for the selected category
+    const categoryObject = expenseCategories.find(cat => cat.name === formData.category);
+    if (!categoryObject) {
+      toast.error("Categoria inválida.");
+      return;
+    }
+
+    // Format date to DD/MM/YYYY if it's in YYYY-MM-DD format
+    const formattedDate = formData.dueDate.includes('-') 
+      ? formData.dueDate.split('-').reverse().join('/') 
+      : formData.dueDate;
+
+    // Create new expense
+    const newExpense: ExpenseData = {
+      id: expensesData.length + 1,
+      description: formData.description,
+      category: formData.category,
+      icon: categoryObject.icon,
+      value: formData.value.startsWith('R$') ? formData.value : `R$ ${formData.value}`,
+      dueDate: formattedDate,
+      isPaid: formData.isPaid,
+    };
+
+    // Add to expenses list
+    setExpensesData([newExpense, ...expensesData]);
+    
+    // Close modal and reset form
+    setIsAddModalOpen(false);
+    setFormData({
+      description: '',
+      category: '',
+      value: '',
+      dueDate: '',
+      isPaid: false,
+    });
+    
+    // Show success toast
+    toast.success("Despesa adicionada com sucesso!");
+  };
 
   return (
     <motion.div
@@ -274,7 +347,7 @@ export const ExpenseManagement = () => {
               </button>
             </div>
 
-            <form>
+            <form onSubmit={(e) => e.preventDefault()}>
               <div className="space-y-4">
                 <div>
                   <label htmlFor="expense-description" className="block text-sm font-medium mb-1">
@@ -285,6 +358,8 @@ export const ExpenseManagement = () => {
                     id="expense-description"
                     placeholder="Ex: Aluguel do imóvel"
                     className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
+                    value={formData.description}
+                    onChange={handleInputChange}
                   />
                 </div>
 
@@ -295,8 +370,10 @@ export const ExpenseManagement = () => {
                   <select
                     id="expense-category"
                     className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
+                    value={formData.category}
+                    onChange={handleInputChange}
                   >
-                    <option value="" disabled selected>Selecione a categoria</option>
+                    <option value="" disabled>Selecione a categoria</option>
                     {expenseCategories.map((category) => (
                       <option key={category.name} value={category.name}>{category.name}</option>
                     ))}
@@ -312,17 +389,21 @@ export const ExpenseManagement = () => {
                     id="expense-value"
                     placeholder="R$ 0,00"
                     className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
+                    value={formData.value}
+                    onChange={handleInputChange}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="expense-date" className="block text-sm font-medium mb-1">
+                  <label htmlFor="expense-dueDate" className="block text-sm font-medium mb-1">
                     Data de Vencimento
                   </label>
                   <input
                     type="date"
-                    id="expense-date"
+                    id="expense-dueDate"
                     className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
+                    value={formData.dueDate}
+                    onChange={handleInputChange}
                   />
                 </div>
 
@@ -331,6 +412,8 @@ export const ExpenseManagement = () => {
                     type="checkbox"
                     id="is-paid"
                     className="h-4 w-4 text-primary border-gray-300 rounded"
+                    checked={formData.isPaid}
+                    onChange={handleCheckboxChange}
                   />
                   <label htmlFor="is-paid" className="ml-2 block text-sm">
                     Marcar como pago
@@ -348,6 +431,7 @@ export const ExpenseManagement = () => {
                 </button>
                 <button
                   type="button"
+                  onClick={handleSaveExpense}
                   className="premium-button flex items-center space-x-2"
                 >
                   <Check className="h-4 w-4" />
