@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CheckCircle, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,7 +13,7 @@ interface ServiceData {
   status: 'paid' | 'pending' | 'late';
 }
 
-const services: ServiceData[] = [
+const initialServices: ServiceData[] = [
   { id: 1, service: 'Velório Completo', client: 'Família Silva', value: 'R$ 4.800,00', date: '12/05/2024', status: 'paid' },
   { id: 2, service: 'Cremação Padrão', client: 'Família Oliveira', value: 'R$ 3.200,00', date: '14/05/2024', status: 'paid' },
   { id: 3, service: 'Urna Premium', client: 'Família Costa', value: 'R$ 2.500,00', date: '15/05/2024', status: 'pending' },
@@ -47,10 +46,9 @@ export const RevenueManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [servicesData, setServicesData] = useState<ServiceData[]>(services);
+  const [servicesData, setServicesData] = useState<ServiceData[]>([]);
   const [actionMenuOpen, setActionMenuOpen] = useState<number | null>(null);
   
-  // Form state
   const [formData, setFormData] = useState({
     serviceType: '',
     clientName: '',
@@ -59,6 +57,29 @@ export const RevenueManagement = () => {
     paymentMethod: '',
     paymentStatus: '',
   });
+
+  useEffect(() => {
+    const savedServices = localStorage.getItem('services');
+    if (savedServices) {
+      try {
+        const parsedServices = JSON.parse(savedServices);
+        setServicesData(parsedServices);
+      } catch (error) {
+        console.error('Failed to parse services from localStorage:', error);
+        setServicesData(initialServices);
+      }
+    } else {
+      setServicesData(initialServices);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (servicesData.length > 0) {
+      localStorage.setItem('services', JSON.stringify(servicesData));
+    } else if (servicesData.length === 0 && localStorage.getItem('services')) {
+      localStorage.removeItem('services');
+    }
+  }, [servicesData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
@@ -79,20 +100,21 @@ export const RevenueManagement = () => {
   });
 
   const handleSaveService = () => {
-    // Validate form
     if (!formData.serviceType || !formData.clientName || !formData.serviceValue || !formData.serviceDate || !formData.paymentStatus) {
       toast.error("Por favor, preencha todos os campos obrigatórios.");
       return;
     }
 
-    // Format date to DD/MM/YYYY if it's in YYYY-MM-DD format
     const formattedDate = formData.serviceDate.includes('-') 
       ? formData.serviceDate.split('-').reverse().join('/') 
       : formData.serviceDate;
 
-    // Create new service
+    const newId = servicesData.length > 0 
+      ? Math.max(...servicesData.map(service => service.id)) + 1 
+      : 1;
+
     const newService: ServiceData = {
-      id: servicesData.length + 1,
+      id: newId,
       service: formData.serviceType,
       client: formData.clientName,
       value: formData.serviceValue.startsWith('R$') ? formData.serviceValue : `R$ ${formData.serviceValue}`,
@@ -100,10 +122,8 @@ export const RevenueManagement = () => {
       status: formData.paymentStatus as 'paid' | 'pending' | 'late',
     };
 
-    // Add to services list
-    setServicesData([newService, ...servicesData]);
+    setServicesData(prev => [newService, ...prev]);
     
-    // Close modal and reset form
     setIsAddModalOpen(false);
     setFormData({
       serviceType: '',
@@ -114,12 +134,10 @@ export const RevenueManagement = () => {
       paymentStatus: '',
     });
     
-    // Show success toast
     toast.success("Serviço adicionado com sucesso!");
   };
 
   const handleDeleteService = (id: number) => {
-    // Filter out the service with the given id
     const updatedServices = servicesData.filter(service => service.id !== id);
     setServicesData(updatedServices);
     setActionMenuOpen(null);
@@ -128,6 +146,7 @@ export const RevenueManagement = () => {
 
   const handleDeleteAllServices = () => {
     setServicesData([]);
+    localStorage.removeItem('services');
     toast.success("Todos os serviços foram excluídos com sucesso!");
   };
 

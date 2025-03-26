@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CreditCard, Building, Truck, Briefcase, Users, ShoppingCart, Power, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,7 @@ interface ExpenseData {
   isPaid: boolean;
 }
 
-const expenses: ExpenseData[] = [
+const initialExpenses: ExpenseData[] = [
   { id: 1, description: 'Aluguel', category: 'Instalações', icon: Building, value: 'R$ 3.500,00', dueDate: '05/06/2024', isPaid: false },
   { id: 2, description: 'Salários', category: 'Pessoal', icon: Users, value: 'R$ 12.800,00', dueDate: '10/06/2024', isPaid: false },
   { id: 3, description: 'Urnas - Fornecedor A', category: 'Fornecedores', icon: ShoppingCart, value: 'R$ 4.200,00', dueDate: '15/05/2024', isPaid: true },
@@ -35,14 +35,18 @@ const expenseCategories = [
   { name: 'Financeiro', icon: CreditCard },
 ];
 
+const getCategoryIcon = (categoryName: string): React.ElementType => {
+  const category = expenseCategories.find(cat => cat.name === categoryName);
+  return category?.icon || Building;
+};
+
 export const ExpenseManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<boolean | null>(null);
-  const [expensesData, setExpensesData] = useState<ExpenseData[]>(expenses);
+  const [expensesData, setExpensesData] = useState<ExpenseData[]>([]);
   const [actionMenuOpen, setActionMenuOpen] = useState<number | null>(null);
   
-  // Form state
   const [formData, setFormData] = useState({
     description: '',
     category: '',
@@ -50,6 +54,37 @@ export const ExpenseManagement = () => {
     dueDate: '',
     isPaid: false,
   });
+
+  useEffect(() => {
+    const savedExpenses = localStorage.getItem('expenses');
+    if (savedExpenses) {
+      try {
+        const parsedExpenses = JSON.parse(savedExpenses);
+        const expensesWithIcons = parsedExpenses.map((expense: any) => ({
+          ...expense,
+          icon: getCategoryIcon(expense.category)
+        }));
+        setExpensesData(expensesWithIcons);
+      } catch (error) {
+        console.error('Failed to parse expenses from localStorage:', error);
+        setExpensesData(initialExpenses);
+      }
+    } else {
+      setExpensesData(initialExpenses);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (expensesData.length > 0) {
+      const serializableExpenses = expensesData.map(expense => {
+        const { icon, ...rest } = expense;
+        return rest;
+      });
+      localStorage.setItem('expenses', JSON.stringify(serializableExpenses));
+    } else if (expensesData.length === 0 && localStorage.getItem('expenses')) {
+      localStorage.removeItem('expenses');
+    }
+  }, [expensesData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
@@ -77,27 +112,27 @@ export const ExpenseManagement = () => {
   });
 
   const handleSaveExpense = () => {
-    // Validate form
     if (!formData.description || !formData.category || !formData.value || !formData.dueDate) {
       toast.error("Por favor, preencha todos os campos obrigatórios.");
       return;
     }
 
-    // Find the icon for the selected category
     const categoryObject = expenseCategories.find(cat => cat.name === formData.category);
     if (!categoryObject) {
       toast.error("Categoria inválida.");
       return;
     }
 
-    // Format date to DD/MM/YYYY if it's in YYYY-MM-DD format
     const formattedDate = formData.dueDate.includes('-') 
       ? formData.dueDate.split('-').reverse().join('/') 
       : formData.dueDate;
 
-    // Create new expense
+    const newId = expensesData.length > 0 
+      ? Math.max(...expensesData.map(expense => expense.id)) + 1 
+      : 1;
+
     const newExpense: ExpenseData = {
-      id: expensesData.length + 1,
+      id: newId,
       description: formData.description,
       category: formData.category,
       icon: categoryObject.icon,
@@ -106,10 +141,8 @@ export const ExpenseManagement = () => {
       isPaid: formData.isPaid,
     };
 
-    // Add to expenses list
     setExpensesData([newExpense, ...expensesData]);
     
-    // Close modal and reset form
     setIsAddModalOpen(false);
     setFormData({
       description: '',
@@ -119,12 +152,10 @@ export const ExpenseManagement = () => {
       isPaid: false,
     });
     
-    // Show success toast
     toast.success("Despesa adicionada com sucesso!");
   };
 
   const handleDeleteExpense = (id: number) => {
-    // Filter out the expense with the given id
     const updatedExpenses = expensesData.filter(expense => expense.id !== id);
     setExpensesData(updatedExpenses);
     setActionMenuOpen(null);
@@ -133,6 +164,7 @@ export const ExpenseManagement = () => {
 
   const handleDeleteAllExpenses = () => {
     setExpensesData([]);
+    localStorage.removeItem('expenses');
     toast.success("Todas as despesas foram excluídas com sucesso!");
   };
 
@@ -487,4 +519,3 @@ export const ExpenseManagement = () => {
     </motion.div>
   );
 };
-
