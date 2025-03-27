@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface ServiceData {
   id: string;
@@ -118,11 +119,11 @@ export const RevenueManagement = () => {
     return parseFloat(value.replace('R$ ', '').replace(',', '.'));
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [id.replace('-', '')]: value,
+      [id.replace('service-', '').replace('client-', '').replace('payment-', '')]: value,
     }));
   };
 
@@ -510,13 +511,13 @@ export const RevenueManagement = () => {
               <label htmlFor="client-name" className="block text-sm font-medium">
                 Nome do Cliente/Família
               </label>
-              <input
+              <Input
                 type="text"
                 id="client-name"
                 placeholder="Ex: Família Silva"
-                className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
                 value={formData.clientName}
                 onChange={handleInputChange}
+                className="w-full"
               />
             </div>
 
@@ -524,13 +525,13 @@ export const RevenueManagement = () => {
               <label htmlFor="service-value" className="block text-sm font-medium">
                 Valor
               </label>
-              <input
+              <Input
                 type="text"
                 id="service-value"
                 placeholder="R$ 0,00"
-                className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
                 value={formData.serviceValue}
                 onChange={handleInputChange}
+                className="w-full"
               />
             </div>
 
@@ -538,12 +539,12 @@ export const RevenueManagement = () => {
               <label htmlFor="service-date" className="block text-sm font-medium">
                 Data do Serviço
               </label>
-              <input
+              <Input
                 type="date"
                 id="service-date"
-                className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
                 value={formData.serviceDate}
                 onChange={handleInputChange}
+                className="w-full"
               />
             </div>
 
