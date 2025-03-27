@@ -1,28 +1,19 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CheckCircle, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ServiceData {
-  id: number;
-  service: string;
+  id: string;
+  service_name: string;
   client: string;
   value: string;
   date: string;
   status: 'paid' | 'pending' | 'late';
 }
-
-const initialServices: ServiceData[] = [
-  { id: 1, service: 'Velório Completo', client: 'Família Silva', value: 'R$ 4.800,00', date: '12/05/2024', status: 'paid' },
-  { id: 2, service: 'Cremação Padrão', client: 'Família Oliveira', value: 'R$ 3.200,00', date: '14/05/2024', status: 'paid' },
-  { id: 3, service: 'Urna Premium', client: 'Família Costa', value: 'R$ 2.500,00', date: '15/05/2024', status: 'pending' },
-  { id: 4, service: 'Plano Funeral Básico', client: 'João Pereira', value: 'R$ 1.800,00', date: '12/04/2024', status: 'late' },
-  { id: 5, service: 'Velório + Transporte', client: 'Família Rodrigues', value: 'R$ 5.200,00', date: '18/05/2024', status: 'pending' },
-  { id: 6, service: 'Cremação Premium', client: 'Família Santos', value: 'R$ 4.100,00', date: '21/05/2024', status: 'paid' },
-  { id: 7, service: 'Urna Básica', client: 'Família Almeida', value: 'R$ 1.300,00', date: '23/05/2024', status: 'pending' },
-  { id: 8, service: 'Plano Funeral Premium', client: 'Carlos Mendes', value: 'R$ 2.900,00', date: '05/05/2024', status: 'paid' },
-];
 
 const serviceTypes = [
   'Velório',
@@ -47,7 +38,8 @@ export const RevenueManagement = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [servicesData, setServicesData] = useState<ServiceData[]>([]);
-  const [actionMenuOpen, setActionMenuOpen] = useState<number | null>(null);
+  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [formData, setFormData] = useState({
     serviceType: '',
@@ -58,28 +50,60 @@ export const RevenueManagement = () => {
     paymentStatus: '',
   });
 
-  useEffect(() => {
-    const savedServices = localStorage.getItem('services');
-    if (savedServices) {
-      try {
-        const parsedServices = JSON.parse(savedServices);
-        setServicesData(parsedServices);
-      } catch (error) {
-        console.error('Failed to parse services from localStorage:', error);
-        setServicesData(initialServices);
+  const fetchServices = async () => {
+    setIsLoading(true);
+    try {
+      let query = supabase.from('revenues').select('*');
+      
+      if (selectedStatus) {
+        query = query.eq('status', selectedStatus);
       }
-    } else {
-      setServicesData(initialServices);
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      const formattedData = data.map(item => ({
+        id: item.id,
+        service_name: item.service_name,
+        client: item.client,
+        value: formatCurrency(item.value),
+        date: formatDate(item.date),
+        status: item.status as 'paid' | 'pending' | 'late'
+      }));
+      
+      setServicesData(formattedData);
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      toast({
+        title: "Erro ao carregar serviços",
+        description: "Não foi possível carregar os serviços. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    if (servicesData.length > 0) {
-      localStorage.setItem('services', JSON.stringify(servicesData));
-    } else if (servicesData.length === 0 && localStorage.getItem('services')) {
-      localStorage.removeItem('services');
-    }
-  }, [servicesData]);
+    fetchServices();
+  }, [selectedStatus]);
+
+  const formatCurrency = (value: number) => {
+    return `R$ ${value.toFixed(2).replace('.', ',')}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  const parseCurrency = (value: string) => {
+    if (!value) return 0;
+    return parseFloat(value.replace('R$ ', '').replace(',', '.'));
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
@@ -91,63 +115,119 @@ export const RevenueManagement = () => {
 
   const filteredServices = servicesData.filter(service => {
     const matchesSearch = 
-      service.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      service.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       service.client.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = selectedStatus === null || service.status === selectedStatus;
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
-  const handleSaveService = () => {
+  const handleSaveService = async () => {
     if (!formData.serviceType || !formData.clientName || !formData.serviceValue || !formData.serviceDate || !formData.paymentStatus) {
-      toast.error("Por favor, preencha todos os campos obrigatórios.");
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
       return;
     }
 
-    const formattedDate = formData.serviceDate.includes('-') 
-      ? formData.serviceDate.split('-').reverse().join('/') 
-      : formData.serviceDate;
+    try {
+      const newService = {
+        service_name: formData.serviceType,
+        client: formData.clientName,
+        value: parseCurrency(formData.serviceValue),
+        date: formData.serviceDate,
+        status: formData.paymentStatus as 'paid' | 'pending' | 'late',
+      };
 
-    const newId = servicesData.length > 0 
-      ? Math.max(...servicesData.map(service => service.id)) + 1 
-      : 1;
+      const { data, error } = await supabase
+        .from('revenues')
+        .insert([newService])
+        .select();
 
-    const newService: ServiceData = {
-      id: newId,
-      service: formData.serviceType,
-      client: formData.clientName,
-      value: formData.serviceValue.startsWith('R$') ? formData.serviceValue : `R$ ${formData.serviceValue}`,
-      date: formattedDate,
-      status: formData.paymentStatus as 'paid' | 'pending' | 'late',
-    };
-
-    setServicesData(prev => [newService, ...prev]);
-    
-    setIsAddModalOpen(false);
-    setFormData({
-      serviceType: '',
-      clientName: '',
-      serviceValue: '',
-      serviceDate: '',
-      paymentMethod: '',
-      paymentStatus: '',
-    });
-    
-    toast.success("Serviço adicionado com sucesso!");
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Serviço adicionado",
+        description: "Serviço adicionado com sucesso."
+      });
+      
+      setIsAddModalOpen(false);
+      setFormData({
+        serviceType: '',
+        clientName: '',
+        serviceValue: '',
+        serviceDate: '',
+        paymentMethod: '',
+        paymentStatus: '',
+      });
+      
+      fetchServices();
+    } catch (error) {
+      console.error('Error adding service:', error);
+      toast({
+        title: "Erro ao adicionar serviço",
+        description: "Não foi possível adicionar o serviço. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteService = (id: number) => {
-    const updatedServices = servicesData.filter(service => service.id !== id);
-    setServicesData(updatedServices);
-    setActionMenuOpen(null);
-    toast.success("Serviço excluído com sucesso!");
+  const handleDeleteService = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('revenues')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Serviço excluído",
+        description: "Serviço excluído com sucesso."
+      });
+      
+      setActionMenuOpen(null);
+      fetchServices();
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      toast({
+        title: "Erro ao excluir serviço",
+        description: "Não foi possível excluir o serviço. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteAllServices = () => {
-    setServicesData([]);
-    localStorage.removeItem('services');
-    toast.success("Todos os serviços foram excluídos com sucesso!");
+  const handleDeleteAllServices = async () => {
+    try {
+      const { error } = await supabase
+        .from('revenues')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Serviços excluídos",
+        description: "Todos os serviços foram excluídos com sucesso."
+      });
+      
+      fetchServices();
+    } catch (error) {
+      console.error('Error deleting all services:', error);
+      toast({
+        title: "Erro ao excluir serviços",
+        description: "Não foi possível excluir os serviços. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    }
   };
 
   const statusColors = {
@@ -298,72 +378,86 @@ export const RevenueManagement = () => {
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Serviço</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Cliente</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Valor</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Data</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredServices.map((service, index) => {
-                const StatusIcon = statusColors[service.status].icon;
-                
-                return (
-                  <motion.tr 
-                    key={service.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 + (index * 0.05) }}
-                    className="border-b border-border hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="px-4 py-4 text-sm">{service.service}</td>
-                    <td className="px-4 py-4 text-sm">{service.client}</td>
-                    <td className="px-4 py-4 text-sm font-medium">{service.value}</td>
-                    <td className="px-4 py-4 text-sm text-muted-foreground">{service.date}</td>
-                    <td className="px-4 py-4">
-                      <div className={cn(
-                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                        statusColors[service.status].bg,
-                        statusColors[service.status].text
-                      )}>
-                        <StatusIcon className="w-3 h-3 mr-1" />
-                        {getStatusLabel(service.status)}
-                      </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Serviço</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Cliente</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Valor</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Data</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredServices.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                      Nenhum serviço encontrado
                     </td>
-                    <td className="px-4 py-4 text-right relative">
-                      <button 
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setActionMenuOpen(actionMenuOpen === service.id ? null : service.id)}
+                  </tr>
+                ) : (
+                  filteredServices.map((service, index) => {
+                    const StatusIcon = statusColors[service.status].icon;
+                    
+                    return (
+                      <motion.tr 
+                        key={service.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.1 + (index * 0.05) }}
+                        className="border-b border-border hover:bg-muted/30 transition-colors"
                       >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                      
-                      {actionMenuOpen === service.id && (
-                        <div className="absolute right-4 mt-2 w-48 rounded-md shadow-lg bg-white z-10 border border-border">
-                          <div className="py-1" role="menu" aria-orientation="vertical">
-                            <button 
-                              className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
-                              onClick={() => handleDeleteService(service.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir serviço
-                            </button>
+                        <td className="px-4 py-4 text-sm">{service.service_name}</td>
+                        <td className="px-4 py-4 text-sm">{service.client}</td>
+                        <td className="px-4 py-4 text-sm font-medium">{service.value}</td>
+                        <td className="px-4 py-4 text-sm text-muted-foreground">{service.date}</td>
+                        <td className="px-4 py-4">
+                          <div className={cn(
+                            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                            statusColors[service.status].bg,
+                            statusColors[service.status].text
+                          )}>
+                            <StatusIcon className="w-3 h-3 mr-1" />
+                            {getStatusLabel(service.status)}
                           </div>
-                        </div>
-                      )}
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        </td>
+                        <td className="px-4 py-4 text-right relative">
+                          <button 
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() => setActionMenuOpen(actionMenuOpen === service.id ? null : service.id)}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                          
+                          {actionMenuOpen === service.id && (
+                            <div className="absolute right-4 mt-2 w-48 rounded-md shadow-lg bg-white z-10 border border-border">
+                              <div className="py-1" role="menu" aria-orientation="vertical">
+                                <button 
+                                  className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                                  onClick={() => handleDeleteService(service.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir serviço
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      </motion.tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </motion.div>
 
       {isAddModalOpen && (

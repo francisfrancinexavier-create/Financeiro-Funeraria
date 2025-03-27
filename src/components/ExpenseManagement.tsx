@@ -1,29 +1,20 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CreditCard, Building, Truck, Briefcase, Users, ShoppingCart, Power, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ExpenseData {
-  id: number;
+  id: string;
   description: string;
   category: string;
   icon: React.ElementType;
   value: string;
-  dueDate: string;
-  isPaid: boolean;
+  due_date: string;
+  is_paid: boolean;
 }
-
-const initialExpenses: ExpenseData[] = [
-  { id: 1, description: 'Aluguel', category: 'Instalações', icon: Building, value: 'R$ 3.500,00', dueDate: '05/06/2024', isPaid: false },
-  { id: 2, description: 'Salários', category: 'Pessoal', icon: Users, value: 'R$ 12.800,00', dueDate: '10/06/2024', isPaid: false },
-  { id: 3, description: 'Urnas - Fornecedor A', category: 'Fornecedores', icon: ShoppingCart, value: 'R$ 4.200,00', dueDate: '15/05/2024', isPaid: true },
-  { id: 4, description: 'Seguro Veicular', category: 'Transportes', icon: Truck, value: 'R$ 950,00', dueDate: '20/05/2024', isPaid: true },
-  { id: 5, description: 'Serviços Contábeis', category: 'Administrativo', icon: Briefcase, value: 'R$ 1.200,00', dueDate: '22/06/2024', isPaid: false },
-  { id: 6, description: 'Energia Elétrica', category: 'Utilidades', icon: Power, value: 'R$ 780,00', dueDate: '18/05/2024', isPaid: true },
-  { id: 7, description: 'Manutenção Veículos', category: 'Transportes', icon: Truck, value: 'R$ 1.450,00', dueDate: '25/05/2024', isPaid: true },
-  { id: 8, description: 'Cartão Corporativo', category: 'Financeiro', icon: CreditCard, value: 'R$ 2.300,00', dueDate: '28/05/2024', isPaid: false },
-];
 
 const expenseCategories = [
   { name: 'Instalações', icon: Building },
@@ -45,7 +36,8 @@ export const ExpenseManagement = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<boolean | null>(null);
   const [expensesData, setExpensesData] = useState<ExpenseData[]>([]);
-  const [actionMenuOpen, setActionMenuOpen] = useState<number | null>(null);
+  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [formData, setFormData] = useState({
     description: '',
@@ -55,36 +47,61 @@ export const ExpenseManagement = () => {
     isPaid: false,
   });
 
-  useEffect(() => {
-    const savedExpenses = localStorage.getItem('expenses');
-    if (savedExpenses) {
-      try {
-        const parsedExpenses = JSON.parse(savedExpenses);
-        const expensesWithIcons = parsedExpenses.map((expense: any) => ({
-          ...expense,
-          icon: getCategoryIcon(expense.category)
-        }));
-        setExpensesData(expensesWithIcons);
-      } catch (error) {
-        console.error('Failed to parse expenses from localStorage:', error);
-        setExpensesData(initialExpenses);
+  const fetchExpenses = async () => {
+    setIsLoading(true);
+    try {
+      let query = supabase.from('expenses').select('*');
+      
+      if (selectedStatus !== null) {
+        query = query.eq('is_paid', selectedStatus);
       }
-    } else {
-      setExpensesData(initialExpenses);
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      const formattedData = data.map(item => ({
+        id: item.id,
+        description: item.description,
+        category: item.category,
+        icon: getCategoryIcon(item.category),
+        value: formatCurrency(item.value),
+        due_date: formatDate(item.due_date),
+        is_paid: item.is_paid
+      }));
+      
+      setExpensesData(formattedData);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      toast({
+        title: "Erro ao carregar despesas",
+        description: "Não foi possível carregar as despesas. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
-    if (expensesData.length > 0) {
-      const serializableExpenses = expensesData.map(expense => {
-        const { icon, ...rest } = expense;
-        return rest;
-      });
-      localStorage.setItem('expenses', JSON.stringify(serializableExpenses));
-    } else if (expensesData.length === 0 && localStorage.getItem('expenses')) {
-      localStorage.removeItem('expenses');
-    }
-  }, [expensesData]);
+    fetchExpenses();
+  }, [selectedStatus]);
+
+  const formatCurrency = (value: number) => {
+    return `R$ ${value.toFixed(2).replace('.', ',')}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  const parseCurrency = (value: string) => {
+    if (!value) return 0;
+    return parseFloat(value.replace('R$ ', '').replace(',', '.'));
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
@@ -106,66 +123,115 @@ export const ExpenseManagement = () => {
       expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       expense.category.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = selectedStatus === null || expense.isPaid === selectedStatus;
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
-  const handleSaveExpense = () => {
+  const handleSaveExpense = async () => {
     if (!formData.description || !formData.category || !formData.value || !formData.dueDate) {
-      toast.error("Por favor, preencha todos os campos obrigatórios.");
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive"
+      });
       return;
     }
 
-    const categoryObject = expenseCategories.find(cat => cat.name === formData.category);
-    if (!categoryObject) {
-      toast.error("Categoria inválida.");
-      return;
+    try {
+      const newExpense = {
+        description: formData.description,
+        category: formData.category,
+        value: parseCurrency(formData.value),
+        due_date: formData.dueDate,
+        is_paid: formData.isPaid,
+      };
+
+      const { data, error } = await supabase
+        .from('expenses')
+        .insert([newExpense])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Despesa adicionada",
+        description: "Despesa adicionada com sucesso."
+      });
+      
+      setIsAddModalOpen(false);
+      setFormData({
+        description: '',
+        category: '',
+        value: '',
+        dueDate: '',
+        isPaid: false,
+      });
+      
+      fetchExpenses();
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      toast({
+        title: "Erro ao adicionar despesa",
+        description: "Não foi possível adicionar a despesa. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
     }
-
-    const formattedDate = formData.dueDate.includes('-') 
-      ? formData.dueDate.split('-').reverse().join('/') 
-      : formData.dueDate;
-
-    const newId = expensesData.length > 0 
-      ? Math.max(...expensesData.map(expense => expense.id)) + 1 
-      : 1;
-
-    const newExpense: ExpenseData = {
-      id: newId,
-      description: formData.description,
-      category: formData.category,
-      icon: categoryObject.icon,
-      value: formData.value.startsWith('R$') ? formData.value : `R$ ${formData.value}`,
-      dueDate: formattedDate,
-      isPaid: formData.isPaid,
-    };
-
-    setExpensesData([newExpense, ...expensesData]);
-    
-    setIsAddModalOpen(false);
-    setFormData({
-      description: '',
-      category: '',
-      value: '',
-      dueDate: '',
-      isPaid: false,
-    });
-    
-    toast.success("Despesa adicionada com sucesso!");
   };
 
-  const handleDeleteExpense = (id: number) => {
-    const updatedExpenses = expensesData.filter(expense => expense.id !== id);
-    setExpensesData(updatedExpenses);
-    setActionMenuOpen(null);
-    toast.success("Despesa excluída com sucesso!");
+  const handleDeleteExpense = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Despesa excluída",
+        description: "Despesa excluída com sucesso."
+      });
+      
+      setActionMenuOpen(null);
+      fetchExpenses();
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      toast({
+        title: "Erro ao excluir despesa",
+        description: "Não foi possível excluir a despesa. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteAllExpenses = () => {
-    setExpensesData([]);
-    localStorage.removeItem('expenses');
-    toast.success("Todas as despesas foram excluídas com sucesso!");
+  const handleDeleteAllExpenses = async () => {
+    try {
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Despesas excluídas",
+        description: "Todas as despesas foram excluídas com sucesso."
+      });
+      
+      fetchExpenses();
+    } catch (error) {
+      console.error('Error deleting all expenses:', error);
+      toast({
+        title: "Erro ao excluir despesas",
+        description: "Não foi possível excluir as despesas. Tente novamente mais tarde.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -325,79 +391,93 @@ export const ExpenseManagement = () => {
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Descrição</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Categoria</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Valor</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Vencimento</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredExpenses.map((expense, index) => {
-                const ExpenseIcon = expense.icon;
-                
-                return (
-                  <motion.tr 
-                    key={expense.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 + (index * 0.05) }}
-                    className="border-b border-border hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="px-4 py-4 text-sm">{expense.description}</td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center">
-                        <div className="p-1.5 rounded-full bg-primary/10 mr-2">
-                          <ExpenseIcon className="h-3.5 w-3.5 text-primary" />
-                        </div>
-                        <span className="text-sm">{expense.category}</span>
-                      </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Descrição</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Categoria</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Valor</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Vencimento</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredExpenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                      Nenhuma despesa encontrada
                     </td>
-                    <td className="px-4 py-4 text-sm font-medium">{expense.value}</td>
-                    <td className="px-4 py-4 text-sm text-muted-foreground">{expense.dueDate}</td>
-                    <td className="px-4 py-4">
-                      <div className={cn(
-                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                        expense.isPaid 
-                          ? "bg-green-100 text-green-800" 
-                          : "bg-orange-100 text-orange-800"
-                      )}>
-                        {expense.isPaid ? 'Pago' : 'A Pagar'}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-right relative">
-                      <button 
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setActionMenuOpen(actionMenuOpen === expense.id ? null : expense.id)}
+                  </tr>
+                ) : (
+                  filteredExpenses.map((expense, index) => {
+                    const ExpenseIcon = expense.icon;
+                    
+                    return (
+                      <motion.tr 
+                        key={expense.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.1 + (index * 0.05) }}
+                        className="border-b border-border hover:bg-muted/30 transition-colors"
                       >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                      
-                      {actionMenuOpen === expense.id && (
-                        <div className="absolute right-4 mt-2 w-48 rounded-md shadow-lg bg-white z-10 border border-border">
-                          <div className="py-1" role="menu" aria-orientation="vertical">
-                            <button 
-                              className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
-                              onClick={() => handleDeleteExpense(expense.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir despesa
-                            </button>
+                        <td className="px-4 py-4 text-sm">{expense.description}</td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center">
+                            <div className="p-1.5 rounded-full bg-primary/10 mr-2">
+                              <ExpenseIcon className="h-3.5 w-3.5 text-primary" />
+                            </div>
+                            <span className="text-sm">{expense.category}</span>
                           </div>
-                        </div>
-                      )}
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        </td>
+                        <td className="px-4 py-4 text-sm font-medium">{expense.value}</td>
+                        <td className="px-4 py-4 text-sm text-muted-foreground">{expense.due_date}</td>
+                        <td className="px-4 py-4">
+                          <div className={cn(
+                            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                            expense.is_paid 
+                              ? "bg-green-100 text-green-800" 
+                              : "bg-orange-100 text-orange-800"
+                          )}>
+                            {expense.is_paid ? 'Pago' : 'A Pagar'}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-right relative">
+                          <button 
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() => setActionMenuOpen(actionMenuOpen === expense.id ? null : expense.id)}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                          
+                          {actionMenuOpen === expense.id && (
+                            <div className="absolute right-4 mt-2 w-48 rounded-md shadow-lg bg-white z-10 border border-border">
+                              <div className="py-1" role="menu" aria-orientation="vertical">
+                                <button 
+                                  className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                                  onClick={() => handleDeleteExpense(expense.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir despesa
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      </motion.tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </motion.div>
 
       {isAddModalOpen && (
