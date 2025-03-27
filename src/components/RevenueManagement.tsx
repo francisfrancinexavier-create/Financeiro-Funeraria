@@ -5,6 +5,20 @@ import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CheckC
 import { cn } from '@/lib/utils';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface ServiceData {
   id: string;
@@ -110,6 +124,13 @@ export const RevenueManagement = () => {
     setFormData(prev => ({
       ...prev,
       [id.replace('-', '')]: value,
+    }));
+  };
+
+  const handleSelectChange = (value: string, field: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value,
     }));
   };
 
@@ -437,7 +458,7 @@ export const RevenueManagement = () => {
                           </button>
                           
                           {actionMenuOpen === service.id && (
-                            <div className="absolute right-4 mt-2 w-48 rounded-md shadow-lg bg-white z-10 border border-border">
+                            <div className="absolute right-4 mt-2 w-48 rounded-md shadow-lg bg-popover z-10 border border-border">
                               <div className="py-1" role="menu" aria-orientation="vertical">
                                 <button 
                                   className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
@@ -460,143 +481,131 @@ export const RevenueManagement = () => {
         )}
       </motion.div>
 
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            className="bg-background rounded-2xl shadow-lg p-6 w-full max-w-lg mx-4"
-          >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Adicionar Novo Serviço</h2>
-              <button
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">Adicionar Novo Serviço</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="service-type" className="block text-sm font-medium">
+                Tipo de Serviço
+              </label>
+              <Select
+                value={formData.serviceType}
+                onValueChange={(value) => handleSelectChange(value, 'serviceType')}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
+                <SelectTrigger id="service-type" className="w-full">
+                  <SelectValue placeholder="Selecione o tipo de serviço" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  {serviceTypes.map((type) => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <form onSubmit={(e) => e.preventDefault()}>
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="service-type" className="block text-sm font-medium mb-1">
-                    Tipo de Serviço
-                  </label>
-                  <select
-                    id="service-type"
-                    className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
-                    value={formData.serviceType}
-                    onChange={handleInputChange}
-                  >
-                    <option value="" disabled>Selecione o tipo de serviço</option>
-                    {serviceTypes.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
+            <div className="space-y-2">
+              <label htmlFor="client-name" className="block text-sm font-medium">
+                Nome do Cliente/Família
+              </label>
+              <input
+                type="text"
+                id="client-name"
+                placeholder="Ex: Família Silva"
+                className="w-full px-3 py-2 border border-border rounded-lg"
+                value={formData.clientName}
+                onChange={handleInputChange}
+              />
+            </div>
 
-                <div>
-                  <label htmlFor="client-name" className="block text-sm font-medium mb-1">
-                    Nome do Cliente/Família
-                  </label>
-                  <input
-                    type="text"
-                    id="client-name"
-                    placeholder="Ex: Família Silva"
-                    className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
-                    value={formData.clientName}
-                    onChange={handleInputChange}
-                  />
-                </div>
+            <div className="space-y-2">
+              <label htmlFor="service-value" className="block text-sm font-medium">
+                Valor
+              </label>
+              <input
+                type="text"
+                id="service-value"
+                placeholder="R$ 0,00"
+                className="w-full px-3 py-2 border border-border rounded-lg"
+                value={formData.serviceValue}
+                onChange={handleInputChange}
+              />
+            </div>
 
-                <div>
-                  <label htmlFor="service-value" className="block text-sm font-medium mb-1">
-                    Valor
-                  </label>
-                  <input
-                    type="text"
-                    id="service-value"
-                    placeholder="R$ 0,00"
-                    className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
-                    value={formData.serviceValue}
-                    onChange={handleInputChange}
-                  />
-                </div>
+            <div className="space-y-2">
+              <label htmlFor="service-date" className="block text-sm font-medium">
+                Data do Serviço
+              </label>
+              <input
+                type="date"
+                id="service-date"
+                className="w-full px-3 py-2 border border-border rounded-lg"
+                value={formData.serviceDate}
+                onChange={handleInputChange}
+              />
+            </div>
 
-                <div>
-                  <label htmlFor="service-date" className="block text-sm font-medium mb-1">
-                    Data do Serviço
-                  </label>
-                  <input
-                    type="date"
-                    id="service-date"
-                    className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
-                    value={formData.serviceDate}
-                    onChange={handleInputChange}
-                  />
-                </div>
+            <div className="space-y-2">
+              <label htmlFor="payment-method" className="block text-sm font-medium">
+                Forma de Pagamento
+              </label>
+              <Select
+                value={formData.paymentMethod}
+                onValueChange={(value) => handleSelectChange(value, 'paymentMethod')}
+              >
+                <SelectTrigger id="payment-method" className="w-full">
+                  <SelectValue placeholder="Selecione a forma de pagamento" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  {paymentMethods.map((method) => (
+                    <SelectItem key={method} value={method}>{method}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-                <div>
-                  <label htmlFor="payment-method" className="block text-sm font-medium mb-1">
-                    Forma de Pagamento
-                  </label>
-                  <select
-                    id="payment-method"
-                    className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
-                    value={formData.paymentMethod}
-                    onChange={handleInputChange}
-                  >
-                    <option value="" disabled>Selecione a forma de pagamento</option>
-                    {paymentMethods.map((method) => (
-                      <option key={method} value={method}>{method}</option>
-                    ))}
-                  </select>
-                </div>
+            <div className="space-y-2">
+              <label htmlFor="payment-status" className="block text-sm font-medium">
+                Status do Pagamento
+              </label>
+              <Select
+                value={formData.paymentStatus}
+                onValueChange={(value) => handleSelectChange(value, 'paymentStatus')}
+              >
+                <SelectTrigger id="payment-status" className="w-full">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="paid">Pago</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="late">Atrasado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-                <div>
-                  <label htmlFor="payment-status" className="block text-sm font-medium mb-1">
-                    Status do Pagamento
-                  </label>
-                  <select
-                    id="payment-status"
-                    className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
-                    value={formData.paymentStatus}
-                    onChange={handleInputChange}
-                  >
-                    <option value="" disabled>Selecione o status</option>
-                    <option value="paid">Pago</option>
-                    <option value="pending">Pendente</option>
-                    <option value="late">Atrasado</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end mt-6 space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveService}
-                  className="premium-button flex items-center space-x-2"
-                >
-                  <Check className="h-4 w-4" />
-                  <span>Salvar Serviço</span>
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      )}
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(false)}
+              className="px-4 py-2 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveService}
+              className="premium-button flex items-center space-x-2"
+            >
+              <Check className="h-4 w-4" />
+              <span>Salvar Serviço</span>
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };
