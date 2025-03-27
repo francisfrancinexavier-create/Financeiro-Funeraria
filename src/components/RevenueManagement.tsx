@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CheckCircle, Clock, AlertCircle, Trash2 } from 'lucide-react';
@@ -499,7 +498,7 @@ export const RevenueManagement = () => {
                 <SelectTrigger id="service-type" className="w-full">
                   <SelectValue placeholder="Selecione o tipo de serviço" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover">
+                <SelectContent>
                   {serviceTypes.map((type) => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
@@ -515,7 +514,7 @@ export const RevenueManagement = () => {
                 type="text"
                 id="client-name"
                 placeholder="Ex: Família Silva"
-                className="w-full px-3 py-2 border border-border rounded-lg"
+                className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
                 value={formData.clientName}
                 onChange={handleInputChange}
               />
@@ -529,7 +528,7 @@ export const RevenueManagement = () => {
                 type="text"
                 id="service-value"
                 placeholder="R$ 0,00"
-                className="w-full px-3 py-2 border border-border rounded-lg"
+                className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
                 value={formData.serviceValue}
                 onChange={handleInputChange}
               />
@@ -542,7 +541,7 @@ export const RevenueManagement = () => {
               <input
                 type="date"
                 id="service-date"
-                className="w-full px-3 py-2 border border-border rounded-lg"
+                className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
                 value={formData.serviceDate}
                 onChange={handleInputChange}
               />
@@ -559,7 +558,7 @@ export const RevenueManagement = () => {
                 <SelectTrigger id="payment-method" className="w-full">
                   <SelectValue placeholder="Selecione a forma de pagamento" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover">
+                <SelectContent>
                   {paymentMethods.map((method) => (
                     <SelectItem key={method} value={method}>{method}</SelectItem>
                   ))}
@@ -578,7 +577,7 @@ export const RevenueManagement = () => {
                 <SelectTrigger id="payment-status" className="w-full">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover">
+                <SelectContent>
                   <SelectItem value="paid">Pago</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="late">Atrasado</SelectItem>
