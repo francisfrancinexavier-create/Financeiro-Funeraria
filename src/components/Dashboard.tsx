@@ -9,19 +9,19 @@ export const Dashboard = () => {
   const alerts = [
     { 
       title: "Fatura de Fornecedor",
-      amount: "R$ 2.430,00",
+      amount: "R$ 0,00",
       date: "Vence em 3 dias",
       icon: CreditCard 
     },
     { 
       title: "Pagamento de Impostos",
-      amount: "R$ 3.750,00",
+      amount: "R$ 0,00",
       date: "Vence em 5 dias",
       icon: Calendar 
     },
     { 
       title: "Recebimento em Atraso",
-      amount: "R$ 1.200,00",
+      amount: "R$ 0,00",
       date: "5 dias de atraso",
       icon: AlertTriangle 
     },

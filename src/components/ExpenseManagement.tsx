@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CreditCard, Building, Truck, Briefcase, Users, ShoppingCart, Power, Trash2 } from 'lucide-react';
@@ -281,13 +280,7 @@ export const ExpenseManagement = () => {
                   <p className="text-sm text-muted-foreground mt-1">Mai, 2024</p>
                 </div>
                 <div className="text-lg font-semibold">
-                  {category.name === 'Pessoal' && 'R$ 12.800'}
-                  {category.name === 'Fornecedores' && 'R$ 4.200'}
-                  {category.name === 'Instalações' && 'R$ 3.500'}
-                  {category.name === 'Financeiro' && 'R$ 2.300'}
-                  {category.name === 'Transportes' && 'R$ 2.400'}
-                  {category.name === 'Administrativo' && 'R$ 1.200'}
-                  {category.name === 'Utilidades' && 'R$ 780'}
+                  R$ 0,00
                 </div>
               </div>
             </motion.div>

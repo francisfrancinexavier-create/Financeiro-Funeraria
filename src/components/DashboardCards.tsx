@@ -57,30 +57,30 @@ export const DashboardCards = () => {
   const stats = [
     {
       title: "Saldo Atual",
-      value: "R$ 45.789,00",
+      value: "R$ 0,00",
       description: `Atualizado hoje`,
-      trend: 12,
+      trend: 0,
       icon: DollarSign,
     },
     {
       title: "Receitas do Mês",
-      value: "R$ 38.450,00",
+      value: "R$ 0,00",
       description: `${currentMonth}`,
-      trend: 8.5,
+      trend: 0,
       icon: TrendingUp,
     },
     {
       title: "Despesas do Mês",
-      value: "R$ 25.378,00",
+      value: "R$ 0,00",
       description: `${currentMonth}`,
-      trend: -3.2,
+      trend: 0,
       icon: CreditCard,
     },
     {
       title: "Pagamentos Pendentes",
-      value: "R$ 5.832,00",
+      value: "R$ 0,00",
       description: "Próximos 30 dias",
-      trend: 2.1,
+      trend: 0,
       icon: Clock,
     },
   ];
