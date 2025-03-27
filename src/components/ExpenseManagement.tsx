@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CreditCard, Building, Truck, Briefcase, Users, ShoppingCart, Power, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from "@/components/ui/toast";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ExpenseData {
