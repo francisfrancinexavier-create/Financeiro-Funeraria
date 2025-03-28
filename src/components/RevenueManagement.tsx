@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CheckCircle, Clock, AlertCircle, Trash2 } from 'lucide-react';
@@ -17,8 +18,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 
 interface ServiceData {
   id: string;
@@ -54,6 +62,10 @@ export const RevenueManagement = () => {
   const [servicesData, setServicesData] = useState<ServiceData[]>([]);
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   
   const [formData, setFormData] = useState({
     serviceType: '',
@@ -71,6 +83,12 @@ export const RevenueManagement = () => {
       
       if (selectedStatus) {
         query = query.eq('status', selectedStatus);
+      }
+      
+      if (startDate && endDate) {
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+        query = query.gte('date', startDateStr).lte('date', endDateStr);
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -103,7 +121,7 @@ export const RevenueManagement = () => {
 
   useEffect(() => {
     fetchServices();
-  }, [selectedStatus]);
+  }, [selectedStatus, startDate, endDate]);
 
   const formatCurrency = (value: number) => {
     return `R$ ${value.toFixed(2).replace('.', ',')}`;
@@ -132,6 +150,35 @@ export const RevenueManagement = () => {
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleDateSelect = (date?: Date) => {
+    if (date) {
+      setFormData(prev => ({
+        ...prev,
+        serviceDate: date.toISOString().split('T')[0],
+      }));
+    }
+  };
+
+  const handleDateRangeApply = () => {
+    if (startDate && endDate) {
+      fetchServices();
+      setIsDateRangeOpen(false);
+    } else {
+      toast({
+        title: "Selecione um período",
+        description: "Por favor, selecione uma data inicial e final.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const resetDateRange = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+    fetchServices();
+    setIsDateRangeOpen(false);
   };
 
   const filteredServices = servicesData.filter(service => {
@@ -251,6 +298,51 @@ export const RevenueManagement = () => {
     }
   };
 
+  const exportToCSV = () => {
+    if (filteredServices.length === 0) {
+      toast({
+        title: "Sem dados para exportar",
+        description: "Não há serviços para exportar.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Criar cabeçalho do CSV
+    const headers = ['Serviço', 'Cliente', 'Valor', 'Data', 'Status'];
+    const csvRows = [headers.join(',')];
+
+    // Adicionar dados
+    filteredServices.forEach(service => {
+      const values = [
+        service.service_name,
+        service.client,
+        service.value,
+        service.date,
+        getStatusLabel(service.status)
+      ];
+      // Escapar valores com vírgulas
+      const escapedValues = values.map(val => `"${val}"`);
+      csvRows.push(escapedValues.join(','));
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'servicos_receitas.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Exportação concluída",
+      description: "Os dados foram exportados com sucesso."
+    });
+  };
+
   const statusColors = {
     paid: { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle },
     pending: { bg: 'bg-blue-100', text: 'text-blue-800', icon: Clock },
@@ -314,17 +406,136 @@ export const RevenueManagement = () => {
           
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
-              <button className="flex items-center space-x-2 px-3 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-muted transition-colors">
-                <Filter className="h-4 w-4" />
-                <span>Filtrar</span>
-              </button>
+              <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+                <SheetTrigger asChild>
+                  <button className="flex items-center space-x-2 px-3 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-muted transition-colors">
+                    <Filter className="h-4 w-4" />
+                    <span>Filtrar</span>
+                  </button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Filtros</SheetTitle>
+                    <SheetDescription>
+                      Filtre os serviços por diferentes critérios
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Status do Pagamento</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedStatus(null);
+                            setIsFilterSheetOpen(false);
+                          }}
+                          className={cn(
+                            "px-3 py-1 text-sm rounded-full transition-colors",
+                            selectedStatus === null 
+                              ? "bg-primary text-white" 
+                              : "bg-secondary text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          Todos
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedStatus('paid');
+                            setIsFilterSheetOpen(false);
+                          }}
+                          className={cn(
+                            "px-3 py-1 text-sm rounded-full transition-colors",
+                            selectedStatus === 'paid' 
+                              ? "bg-green-500 text-white" 
+                              : "bg-green-100 text-green-800 hover:bg-green-200"
+                          )}
+                        >
+                          Pagos
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedStatus('pending');
+                            setIsFilterSheetOpen(false);
+                          }}
+                          className={cn(
+                            "px-3 py-1 text-sm rounded-full transition-colors",
+                            selectedStatus === 'pending' 
+                              ? "bg-blue-500 text-white" 
+                              : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                          )}
+                        >
+                          Pendentes
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedStatus('late');
+                            setIsFilterSheetOpen(false);
+                          }}
+                          className={cn(
+                            "px-3 py-1 text-sm rounded-full transition-colors",
+                            selectedStatus === 'late' 
+                              ? "bg-red-500 text-white" 
+                              : "bg-red-100 text-red-800 hover:bg-red-200"
+                          )}
+                        >
+                          Atrasados
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
               
-              <button className="flex items-center space-x-2 px-3 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-muted transition-colors">
-                <Calendar className="h-4 w-4" />
-                <span>Período</span>
-              </button>
+              <Sheet open={isDateRangeOpen} onOpenChange={setIsDateRangeOpen}>
+                <SheetTrigger asChild>
+                  <button className="flex items-center space-x-2 px-3 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-muted transition-colors">
+                    <Calendar className="h-4 w-4" />
+                    <span>Período</span>
+                  </button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Selecionar Período</SheetTitle>
+                    <SheetDescription>
+                      Defina um intervalo de datas para filtrar os serviços
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Data Inicial</h3>
+                      <CalendarComponent
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        className="rounded-md border shadow p-3 pointer-events-auto"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium">Data Final</h3>
+                      <CalendarComponent
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        disabled={(date) => startDate ? date < startDate : false}
+                        className="rounded-md border shadow p-3 pointer-events-auto"
+                      />
+                    </div>
+                    <div className="flex space-x-2 pt-4">
+                      <Button onClick={handleDateRangeApply} variant="default">
+                        Aplicar
+                      </Button>
+                      <Button onClick={resetDateRange} variant="outline">
+                        Limpar
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
               
-              <button className="flex items-center space-x-2 px-3 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-muted transition-colors">
+              <button 
+                onClick={exportToCSV}
+                className="flex items-center space-x-2 px-3 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-muted transition-colors"
+              >
                 <Download className="h-4 w-4" />
                 <span>Exportar</span>
               </button>
@@ -485,6 +696,9 @@ export const RevenueManagement = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Adicionar Novo Serviço</DialogTitle>
+            <DialogDescription>
+              Preencha os campos abaixo para cadastrar um novo serviço
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
@@ -496,10 +710,10 @@ export const RevenueManagement = () => {
                 value={formData.serviceType}
                 onValueChange={(value) => handleSelectChange(value, 'serviceType')}
               >
-                <SelectTrigger id="service-type" className="w-full">
+                <SelectTrigger id="service-type" className="w-full bg-white">
                   <SelectValue placeholder="Selecione o tipo de serviço" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   {serviceTypes.map((type) => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
@@ -517,7 +731,7 @@ export const RevenueManagement = () => {
                 placeholder="Ex: Família Silva"
                 value={formData.clientName}
                 onChange={handleInputChange}
-                className="w-full"
+                className="w-full bg-white"
               />
             </div>
 
@@ -531,7 +745,7 @@ export const RevenueManagement = () => {
                 placeholder="R$ 0,00"
                 value={formData.serviceValue}
                 onChange={handleInputChange}
-                className="w-full"
+                className="w-full bg-white"
               />
             </div>
 
@@ -539,13 +753,32 @@ export const RevenueManagement = () => {
               <label htmlFor="service-date" className="block text-sm font-medium">
                 Data do Serviço
               </label>
-              <Input
-                type="date"
-                id="service-date"
-                value={formData.serviceDate}
-                onChange={handleInputChange}
-                className="w-full"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal bg-white",
+                      !formData.serviceDate && "text-muted-foreground"
+                    )}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {formData.serviceDate ? 
+                      format(new Date(formData.serviceDate), "dd/MM/yyyy") : 
+                      "Selecione uma data"
+                    }
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-white" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={formData.serviceDate ? new Date(formData.serviceDate) : undefined}
+                    onSelect={handleDateSelect}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
@@ -556,10 +789,10 @@ export const RevenueManagement = () => {
                 value={formData.paymentMethod}
                 onValueChange={(value) => handleSelectChange(value, 'paymentMethod')}
               >
-                <SelectTrigger id="payment-method" className="w-full">
+                <SelectTrigger id="payment-method" className="w-full bg-white">
                   <SelectValue placeholder="Selecione a forma de pagamento" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   {paymentMethods.map((method) => (
                     <SelectItem key={method} value={method}>{method}</SelectItem>
                   ))}
@@ -575,10 +808,10 @@ export const RevenueManagement = () => {
                 value={formData.paymentStatus}
                 onValueChange={(value) => handleSelectChange(value, 'paymentStatus')}
               >
-                <SelectTrigger id="payment-status" className="w-full">
+                <SelectTrigger id="payment-status" className="w-full bg-white">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="paid">Pago</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="late">Atrasado</SelectItem>
