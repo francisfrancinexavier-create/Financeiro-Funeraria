@@ -20,20 +20,10 @@ interface ChartData {
   despesas: number;
 }
 
-const monthData: ChartData[] = [
-  { name: 'Jan', receitas: 32000, despesas: 21000 },
-  { name: 'Fev', receitas: 28000, despesas: 19000 },
-  { name: 'Mar', receitas: 35000, despesas: 22000 },
-  { name: 'Abr', receitas: 30000, despesas: 20000 },
-  { name: 'Mai', receitas: 32000, despesas: 21500 },
-  { name: 'Jun', receitas: 34000, despesas: 22500 },
-  { name: 'Jul', receitas: 38000, despesas: 24000 },
-  { name: 'Ago', receitas: 36000, despesas: 23000 },
-  { name: 'Set', receitas: 33000, despesas: 22000 },
-  { name: 'Out', receitas: 35000, despesas: 23500 },
-  { name: 'Nov', receitas: 37000, despesas: 24000 },
-  { name: 'Dez', receitas: 42000, despesas: 25000 }
-];
+const getMonthName = (monthIndex: number): string => {
+  const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  return months[monthIndex];
+};
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
@@ -44,7 +34,46 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-export const FlowChart = () => {
+interface FlowChartProps {
+  revenueData: any[];
+  expenseData: any[];
+}
+
+export const FlowChart = ({ revenueData, expenseData }: FlowChartProps) => {
+  // Process data to create monthly aggregated data
+  const aggregateByMonth = () => {
+    const currentYear = new Date().getFullYear();
+    const monthlyData: ChartData[] = Array(12)
+      .fill(0)
+      .map((_, i) => ({
+        name: getMonthName(i),
+        receitas: 0,
+        despesas: 0
+      }));
+    
+    // Aggregate revenues
+    revenueData.forEach(revenue => {
+      const date = new Date(revenue.date);
+      if (date.getFullYear() === currentYear) {
+        const monthIndex = date.getMonth();
+        monthlyData[monthIndex].receitas += revenue.value || 0;
+      }
+    });
+    
+    // Aggregate expenses
+    expenseData.forEach(expense => {
+      const date = new Date(expense.due_date);
+      if (date.getFullYear() === currentYear) {
+        const monthIndex = date.getMonth();
+        monthlyData[monthIndex].despesas += expense.value || 0;
+      }
+    });
+    
+    return monthlyData;
+  };
+  
+  const monthData = aggregateByMonth();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -53,7 +82,7 @@ export const FlowChart = () => {
       className="premium-card p-6 space-y-4"
     >
       <div>
-        <h3 className="text-lg font-semibold">Fluxo Financeiro - 2024</h3>
+        <h3 className="text-lg font-semibold">Fluxo Financeiro - {new Date().getFullYear()}</h3>
         <p className="text-sm text-muted-foreground">Análise de receitas e despesas</p>
       </div>
       
@@ -127,14 +156,27 @@ export const FlowChart = () => {
   );
 };
 
-export const ServicesChart = () => {
-  const servicesData = [
-    { name: 'Velórios', valor: 18500 },
-    { name: 'Cremação', valor: 12300 },
-    { name: 'Urnas', valor: 9600 },
-    { name: 'Planos', valor: 11200 },
-    { name: 'Transporte', valor: 7400 },
-  ];
+interface ServicesChartProps {
+  revenueData: any[];
+}
+
+export const ServicesChart = ({ revenueData }: ServicesChartProps) => {
+  // Aggregate data by service type
+  const aggregateByServiceType = () => {
+    const serviceTypes: Record<string, number> = {};
+    
+    revenueData.forEach(revenue => {
+      const serviceType = revenue.service_name;
+      if (!serviceTypes[serviceType]) {
+        serviceTypes[serviceType] = 0;
+      }
+      serviceTypes[serviceType] += revenue.value || 0;
+    });
+    
+    return Object.entries(serviceTypes).map(([name, valor]) => ({ name, valor }));
+  };
+  
+  const servicesData = aggregateByServiceType();
 
   return (
     <motion.div

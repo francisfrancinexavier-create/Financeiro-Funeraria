@@ -11,9 +11,10 @@ interface StatCardProps {
   trend: number;
   icon: React.FC<{ className?: string }>;
   delay?: number;
+  isLoading?: boolean;
 }
 
-export const StatCard = ({ title, value, description, trend, icon: Icon, delay = 0 }: StatCardProps) => {
+export const StatCard = ({ title, value, description, trend, icon: Icon, delay = 0, isLoading = false }: StatCardProps) => {
   const isTrendPositive = trend > 0;
   
   return (
@@ -26,7 +27,11 @@ export const StatCard = ({ title, value, description, trend, icon: Icon, delay =
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-          <p className="text-2xl font-semibold mt-1">{value}</p>
+          {isLoading ? (
+            <div className="h-8 w-24 bg-gray-200 animate-pulse mt-1 rounded"></div>
+          ) : (
+            <p className="text-2xl font-semibold mt-1">{value}</p>
+          )}
         </div>
         <div className="p-3 rounded-full bg-primary/10">
           <Icon className="h-5 w-5 text-primary" />
@@ -51,34 +56,80 @@ export const StatCard = ({ title, value, description, trend, icon: Icon, delay =
   );
 };
 
-export const DashboardCards = () => {
-  const currentMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date());
+interface DashboardCardsProps {
+  revenueData: any[];
+  expenseData: any[];
+  isLoading: boolean;
+}
+
+export const DashboardCards = ({ revenueData, expenseData, isLoading }: DashboardCardsProps) => {
+  // Get current month data
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const formatCurrency = (value: number) => {
+    return `R$ ${value.toFixed(2).replace('.', ',')}`;
+  };
+
+  // Calculate monthly revenue
+  const currentMonthRevenues = revenueData.filter(rev => {
+    const date = new Date(rev.date);
+    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+  });
+  
+  const totalMonthlyRevenue = currentMonthRevenues.reduce((total, rev) => total + (rev.value || 0), 0);
+  
+  // Calculate monthly expenses
+  const currentMonthExpenses = expenseData.filter(exp => {
+    const date = new Date(exp.due_date);
+    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+  });
+  
+  const totalMonthlyExpenses = currentMonthExpenses.reduce((total, exp) => total + (exp.value || 0), 0);
+  
+  // Calculate pending payments
+  const today = new Date();
+  const thirtyDaysLater = new Date();
+  thirtyDaysLater.setDate(today.getDate() + 30);
+  
+  const pendingPayments = expenseData
+    .filter(exp => !exp.is_paid)
+    .filter(exp => {
+      const dueDate = new Date(exp.due_date);
+      return dueDate >= today && dueDate <= thirtyDaysLater;
+    });
+  
+  const totalPendingPayments = pendingPayments.reduce((total, exp) => total + (exp.value || 0), 0);
+  
+  // Calculate current balance
+  const totalBalance = totalMonthlyRevenue - totalMonthlyExpenses;
+  
+  const currentMonthName = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date());
   
   const stats = [
     {
       title: "Saldo Atual",
-      value: "R$ 0,00",
+      value: formatCurrency(totalBalance),
       description: `Atualizado hoje`,
       trend: 0,
       icon: DollarSign,
     },
     {
       title: "Receitas do Mês",
-      value: "R$ 0,00",
-      description: `${currentMonth}`,
+      value: formatCurrency(totalMonthlyRevenue),
+      description: `${currentMonthName}`,
       trend: 0,
       icon: TrendingUp,
     },
     {
       title: "Despesas do Mês",
-      value: "R$ 0,00",
-      description: `${currentMonth}`,
+      value: formatCurrency(totalMonthlyExpenses),
+      description: `${currentMonthName}`,
       trend: 0,
       icon: CreditCard,
     },
     {
       title: "Pagamentos Pendentes",
-      value: "R$ 0,00",
+      value: formatCurrency(totalPendingPayments),
       description: "Próximos 30 dias",
       trend: 0,
       icon: Clock,
@@ -88,7 +139,7 @@ export const DashboardCards = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {stats.map((stat, index) => (
-        <StatCard key={stat.title} {...stat} delay={index} />
+        <StatCard key={stat.title} {...stat} delay={index} isLoading={isLoading} />
       ))}
     </div>
   );
