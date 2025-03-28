@@ -43,7 +43,7 @@ export const AddServiceForm = ({
     paymentStatus: ''
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -120,6 +120,7 @@ export const AddServiceForm = ({
               value={formData.clientName} 
               onChange={handleInputChange} 
               className="w-full bg-white" 
+              autoComplete="off"
             />
           </div>
 
@@ -134,6 +135,7 @@ export const AddServiceForm = ({
               value={formData.serviceValue} 
               onChange={handleInputChange} 
               className="w-full bg-white" 
+              autoComplete="off"
             />
           </div>
 
