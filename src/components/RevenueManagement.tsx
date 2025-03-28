@@ -1,32 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, CheckCircle, Clock, AlertCircle, Trash2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { ServiceTable } from './revenue/ServiceTable';
+import { AddServiceForm, serviceTypes, paymentMethods } from './revenue/AddServiceForm';
+import { ServiceFilters } from './revenue/ServiceFilters';
 
 interface ServiceData {
   id: string;
@@ -37,44 +16,16 @@ interface ServiceData {
   status: 'paid' | 'pending' | 'late';
 }
 
-const serviceTypes = [
-  'Velório',
-  'Cremação',
-  'Urna',
-  'Plano Funeral',
-  'Transporte',
-  'Serviços Adicionais',
-];
-
-const paymentMethods = [
-  'Dinheiro',
-  'Cartão de Crédito',
-  'Cartão de Débito',
-  'PIX',
-  'Transferência',
-  'Boleto',
-];
-
 export const RevenueManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [servicesData, setServicesData] = useState<ServiceData[]>([]);
-  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-  
-  const [formData, setFormData] = useState({
-    serviceType: '',
-    clientName: '',
-    serviceValue: '',
-    serviceDate: '',
-    paymentMethod: '',
-    paymentStatus: '',
-  });
 
   const fetchServices = async () => {
     setIsLoading(true);
@@ -137,59 +88,7 @@ export const RevenueManagement = () => {
     return parseFloat(value.replace('R$ ', '').replace(',', '.'));
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [id.replace('service-', '').replace('client-', '').replace('payment-', '')]: value,
-    }));
-  };
-
-  const handleSelectChange = (value: string, field: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleDateSelect = (date?: Date) => {
-    if (date) {
-      setFormData(prev => ({
-        ...prev,
-        serviceDate: date.toISOString().split('T')[0],
-      }));
-    }
-  };
-
-  const handleDateRangeApply = () => {
-    if (startDate && endDate) {
-      fetchServices();
-      setIsDateRangeOpen(false);
-    } else {
-      toast({
-        title: "Selecione um período",
-        description: "Por favor, selecione uma data inicial e final.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const resetDateRange = () => {
-    setStartDate(undefined);
-    setEndDate(undefined);
-    fetchServices();
-    setIsDateRangeOpen(false);
-  };
-
-  const filteredServices = servicesData.filter(service => {
-    const matchesSearch = 
-      service.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.client.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return matchesSearch;
-  });
-
-  const handleSaveService = async () => {
+  const handleSaveService = async (formData: any) => {
     if (!formData.serviceType || !formData.clientName || !formData.serviceValue || !formData.serviceDate || !formData.paymentStatus) {
       toast({
         title: "Campos obrigatórios",
@@ -223,15 +122,6 @@ export const RevenueManagement = () => {
       });
       
       setIsAddModalOpen(false);
-      setFormData({
-        serviceType: '',
-        clientName: '',
-        serviceValue: '',
-        serviceDate: '',
-        paymentMethod: '',
-        paymentStatus: '',
-      });
-      
       fetchServices();
     } catch (error) {
       console.error('Error adding service:', error);
@@ -259,7 +149,6 @@ export const RevenueManagement = () => {
         description: "Serviço excluído com sucesso."
       });
       
-      setActionMenuOpen(null);
       fetchServices();
     } catch (error) {
       console.error('Error deleting service:', error);
@@ -314,12 +203,18 @@ export const RevenueManagement = () => {
 
     // Adicionar dados
     filteredServices.forEach(service => {
+      const statusMap: {[key: string]: string} = {
+        paid: 'Pago',
+        pending: 'Pendente',
+        late: 'Atrasado',
+      };
+      
       const values = [
         service.service_name,
         service.client,
         service.value,
         service.date,
-        getStatusLabel(service.status)
+        statusMap[service.status]
       ];
       // Escapar valores com vírgulas
       const escapedValues = values.map(val => `"${val}"`);
@@ -343,20 +238,33 @@ export const RevenueManagement = () => {
     });
   };
 
-  const statusColors = {
-    paid: { bg: 'bg-green-100', text: 'text-green-800', icon: CheckCircle },
-    pending: { bg: 'bg-blue-100', text: 'text-blue-800', icon: Clock },
-    late: { bg: 'bg-red-100', text: 'text-red-800', icon: AlertCircle },
+  const handleDateRangeApply = () => {
+    if (startDate && endDate) {
+      fetchServices();
+      setIsDateRangeOpen(false);
+    } else {
+      toast({
+        title: "Selecione um período",
+        description: "Por favor, selecione uma data inicial e final.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const getStatusLabel = (status: 'paid' | 'pending' | 'late') => {
-    const statusMap = {
-      paid: 'Pago',
-      pending: 'Pendente',
-      late: 'Atrasado',
-    };
-    return statusMap[status];
+  const resetDateRange = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+    fetchServices();
+    setIsDateRangeOpen(false);
   };
+
+  const filteredServices = servicesData.filter(service => {
+    const matchesSearch = 
+      service.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      service.client.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesSearch;
+  });
 
   return (
     <motion.div
@@ -390,455 +298,40 @@ export const RevenueManagement = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
         className="premium-card p-6 mb-6"
       >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar serviço ou cliente..."
-              className="pl-10 pr-4 py-2 w-full border border-border rounded-lg subtle-ring-focus text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
-              <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
-                <SheetTrigger asChild>
-                  <button className="flex items-center space-x-2 px-3 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-muted transition-colors">
-                    <Filter className="h-4 w-4" />
-                    <span>Filtrar</span>
-                  </button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>Filtros</SheetTitle>
-                    <SheetDescription>
-                      Filtre os serviços por diferentes critérios
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="py-4 space-y-4">
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium">Status do Pagamento</h3>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedStatus(null);
-                            setIsFilterSheetOpen(false);
-                          }}
-                          className={cn(
-                            "px-3 py-1 text-sm rounded-full transition-colors",
-                            selectedStatus === null 
-                              ? "bg-primary text-white" 
-                              : "bg-secondary text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          Todos
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedStatus('paid');
-                            setIsFilterSheetOpen(false);
-                          }}
-                          className={cn(
-                            "px-3 py-1 text-sm rounded-full transition-colors",
-                            selectedStatus === 'paid' 
-                              ? "bg-green-500 text-white" 
-                              : "bg-green-100 text-green-800 hover:bg-green-200"
-                          )}
-                        >
-                          Pagos
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedStatus('pending');
-                            setIsFilterSheetOpen(false);
-                          }}
-                          className={cn(
-                            "px-3 py-1 text-sm rounded-full transition-colors",
-                            selectedStatus === 'pending' 
-                              ? "bg-blue-500 text-white" 
-                              : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-                          )}
-                        >
-                          Pendentes
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedStatus('late');
-                            setIsFilterSheetOpen(false);
-                          }}
-                          className={cn(
-                            "px-3 py-1 text-sm rounded-full transition-colors",
-                            selectedStatus === 'late' 
-                              ? "bg-red-500 text-white" 
-                              : "bg-red-100 text-red-800 hover:bg-red-200"
-                          )}
-                        >
-                          Atrasados
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-              
-              <Sheet open={isDateRangeOpen} onOpenChange={setIsDateRangeOpen}>
-                <SheetTrigger asChild>
-                  <button className="flex items-center space-x-2 px-3 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-muted transition-colors">
-                    <Calendar className="h-4 w-4" />
-                    <span>Período</span>
-                  </button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>Selecionar Período</SheetTitle>
-                    <SheetDescription>
-                      Defina um intervalo de datas para filtrar os serviços
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="py-4 space-y-4">
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium">Data Inicial</h3>
-                      <CalendarComponent
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        className="rounded-md border shadow p-3 pointer-events-auto"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium">Data Final</h3>
-                      <CalendarComponent
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        disabled={(date) => startDate ? date < startDate : false}
-                        className="rounded-md border shadow p-3 pointer-events-auto"
-                      />
-                    </div>
-                    <div className="flex space-x-2 pt-4">
-                      <Button onClick={handleDateRangeApply} variant="default">
-                        Aplicar
-                      </Button>
-                      <Button onClick={resetDateRange} variant="outline">
-                        Limpar
-                      </Button>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-              
-              <button 
-                onClick={exportToCSV}
-                className="flex items-center space-x-2 px-3 py-2 bg-secondary rounded-lg text-sm font-medium hover:bg-muted transition-colors"
-              >
-                <Download className="h-4 w-4" />
-                <span>Exportar</span>
-              </button>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <button 
-                onClick={() => setIsAddModalOpen(true)}
-                className="premium-button flex items-center space-x-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Novo Serviço</span>
-              </button>
-              
-              {servicesData.length > 0 && (
-                <button 
-                  onClick={handleDeleteAllServices}
-                  className="flex items-center space-x-2 px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Excluir Tudo</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <ServiceFilters 
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          selectedStatus={selectedStatus}
+          setSelectedStatus={setSelectedStatus}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          isFilterSheetOpen={isFilterSheetOpen}
+          setIsFilterSheetOpen={setIsFilterSheetOpen}
+          isDateRangeOpen={isDateRangeOpen}
+          setIsDateRangeOpen={setIsDateRangeOpen}
+          onExport={exportToCSV}
+          onAddNew={() => setIsAddModalOpen(true)}
+          onDeleteAll={handleDeleteAllServices}
+          hasServices={servicesData.length > 0}
+          handleDateRangeApply={handleDateRangeApply}
+          resetDateRange={resetDateRange}
+        />
         
-        <div className="flex space-x-2 mb-4">
-          <button
-            onClick={() => setSelectedStatus(null)}
-            className={cn(
-              "px-3 py-1 text-sm rounded-full transition-colors",
-              selectedStatus === null 
-                ? "bg-primary text-white" 
-                : "bg-secondary text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Todos
-          </button>
-          <button
-            onClick={() => setSelectedStatus('paid')}
-            className={cn(
-              "px-3 py-1 text-sm rounded-full transition-colors",
-              selectedStatus === 'paid' 
-                ? "bg-green-500 text-white" 
-                : "bg-green-100 text-green-800 hover:bg-green-200"
-            )}
-          >
-            Pagos
-          </button>
-          <button
-            onClick={() => setSelectedStatus('pending')}
-            className={cn(
-              "px-3 py-1 text-sm rounded-full transition-colors",
-              selectedStatus === 'pending' 
-                ? "bg-blue-500 text-white" 
-                : "bg-blue-100 text-blue-800 hover:bg-blue-200"
-            )}
-          >
-            Pendentes
-          </button>
-          <button
-            onClick={() => setSelectedStatus('late')}
-            className={cn(
-              "px-3 py-1 text-sm rounded-full transition-colors",
-              selectedStatus === 'late' 
-                ? "bg-red-500 text-white" 
-                : "bg-red-100 text-red-800 hover:bg-red-200"
-            )}
-          >
-            Atrasados
-          </button>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center items-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Serviço</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Cliente</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Valor</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Data</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredServices.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                      Nenhum serviço encontrado
-                    </td>
-                  </tr>
-                ) : (
-                  filteredServices.map((service, index) => {
-                    const StatusIcon = statusColors[service.status].icon;
-                    
-                    return (
-                      <motion.tr 
-                        key={service.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.1 + (index * 0.05) }}
-                        className="border-b border-border hover:bg-muted/30 transition-colors"
-                      >
-                        <td className="px-4 py-4 text-sm">{service.service_name}</td>
-                        <td className="px-4 py-4 text-sm">{service.client}</td>
-                        <td className="px-4 py-4 text-sm font-medium">{service.value}</td>
-                        <td className="px-4 py-4 text-sm text-muted-foreground">{service.date}</td>
-                        <td className="px-4 py-4">
-                          <div className={cn(
-                            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                            statusColors[service.status].bg,
-                            statusColors[service.status].text
-                          )}>
-                            <StatusIcon className="w-3 h-3 mr-1" />
-                            {getStatusLabel(service.status)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-right relative">
-                          <button 
-                            className="text-muted-foreground hover:text-foreground transition-colors"
-                            onClick={() => setActionMenuOpen(actionMenuOpen === service.id ? null : service.id)}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
-                          
-                          {actionMenuOpen === service.id && (
-                            <div className="absolute right-4 mt-2 w-48 rounded-md shadow-lg bg-popover z-10 border border-border">
-                              <div className="py-1" role="menu" aria-orientation="vertical">
-                                <button 
-                                  className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
-                                  onClick={() => handleDeleteService(service.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Excluir serviço
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </td>
-                      </motion.tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <ServiceTable 
+          isLoading={isLoading}
+          filteredServices={filteredServices}
+          onDeleteService={handleDeleteService}
+          fetchServices={fetchServices}
+        />
       </motion.div>
 
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Adicionar Novo Serviço</DialogTitle>
-            <DialogDescription>
-              Preencha os campos abaixo para cadastrar um novo serviço
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="service-type" className="block text-sm font-medium">
-                Tipo de Serviço
-              </label>
-              <Select
-                value={formData.serviceType}
-                onValueChange={(value) => handleSelectChange(value, 'serviceType')}
-              >
-                <SelectTrigger id="service-type" className="w-full bg-white">
-                  <SelectValue placeholder="Selecione o tipo de serviço" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  {serviceTypes.map((type) => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="client-name" className="block text-sm font-medium">
-                Nome do Cliente/Família
-              </label>
-              <Input
-                type="text"
-                id="client-name"
-                placeholder="Ex: Família Silva"
-                value={formData.clientName}
-                onChange={handleInputChange}
-                className="w-full bg-white"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="service-value" className="block text-sm font-medium">
-                Valor
-              </label>
-              <Input
-                type="text"
-                id="service-value"
-                placeholder="R$ 0,00"
-                value={formData.serviceValue}
-                onChange={handleInputChange}
-                className="w-full bg-white"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="service-date" className="block text-sm font-medium">
-                Data do Serviço
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal bg-white",
-                      !formData.serviceDate && "text-muted-foreground"
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {formData.serviceDate ? 
-                      format(new Date(formData.serviceDate), "dd/MM/yyyy") : 
-                      "Selecione uma data"
-                    }
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-white" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={formData.serviceDate ? new Date(formData.serviceDate) : undefined}
-                    onSelect={handleDateSelect}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="payment-method" className="block text-sm font-medium">
-                Forma de Pagamento
-              </label>
-              <Select
-                value={formData.paymentMethod}
-                onValueChange={(value) => handleSelectChange(value, 'paymentMethod')}
-              >
-                <SelectTrigger id="payment-method" className="w-full bg-white">
-                  <SelectValue placeholder="Selecione a forma de pagamento" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  {paymentMethods.map((method) => (
-                    <SelectItem key={method} value={method}>{method}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="payment-status" className="block text-sm font-medium">
-                Status do Pagamento
-              </label>
-              <Select
-                value={formData.paymentStatus}
-                onValueChange={(value) => handleSelectChange(value, 'paymentStatus')}
-              >
-                <SelectTrigger id="payment-status" className="w-full bg-white">
-                  <SelectValue placeholder="Selecione o status" />
-                </SelectTrigger>
-                <SelectContent className="bg-white">
-                  <SelectItem value="paid">Pago</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="late">Atrasado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setIsAddModalOpen(false)}
-              className="px-4 py-2 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveService}
-              className="premium-button flex items-center space-x-2"
-            >
-              <Check className="h-4 w-4" />
-              <span>Salvar Serviço</span>
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddServiceForm 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={handleSaveService}
+      />
     </motion.div>
   );
 };
