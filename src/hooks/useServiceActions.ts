@@ -1,15 +1,21 @@
 
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ServiceData } from "./useServiceData";
 
 interface UseServiceActionsProps {
   fetchServices: () => Promise<void>;
   parseCurrency: (value: string) => number;
 }
 
-export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceActionsProps) => {
-  const handleSaveService = async (formData: any) => {
+// Define explicit types for all functions returned by the hook
+interface ServiceActions {
+  handleSaveService: (formData: any) => Promise<boolean>;
+  handleDeleteService: (id: string) => Promise<void>;
+  handleDeleteAllServices: () => Promise<void>;
+}
+
+export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceActionsProps): ServiceActions => {
+  const handleSaveService = async (formData: any): Promise<boolean> => {
     if (!formData.serviceType || !formData.clientName || !formData.serviceValue || !formData.serviceDate || !formData.paymentStatus) {
       toast({
         title: "Campos obrigatórios",
@@ -66,7 +72,6 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
     }
   };
 
-  // Fixed return type annotation to avoid TypeScript recursive type inference
   const handleDeleteService = async (id: string): Promise<void> => {
     // Check if user is authenticated
     const { data: sessionData } = await supabase.auth.getSession();
@@ -106,7 +111,6 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
     }
   };
 
-  // Fixed return type annotation to avoid TypeScript recursive type inference
   const handleDeleteAllServices = async (): Promise<void> => {
     // Check if user is authenticated
     const { data: sessionData } = await supabase.auth.getSession();
