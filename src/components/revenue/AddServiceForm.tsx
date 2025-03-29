@@ -1,12 +1,10 @@
 
 import React, { useState } from 'react';
-import { Check, Calendar } from 'lucide-react';
+import { Check, Calendar, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
 interface FormData {
@@ -40,20 +38,32 @@ export const AddServiceForm = ({
     paymentMethod: '',
     paymentStatus: ''
   });
+  
+  const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false);
+  const [paymentMethodDropdownOpen, setPaymentMethodDropdownOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [id.replace('service-', '').replace('client-', '').replace('payment-', '')]: value
+      [id]: value
     }));
   };
 
-  const handleSelectChange = (value: string, field: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const selectServiceType = (type: string) => {
+    setFormData(prev => ({ ...prev, serviceType: type }));
+    setServiceDropdownOpen(false);
+  };
+
+  const selectPaymentMethod = (method: string) => {
+    setFormData(prev => ({ ...prev, paymentMethod: method }));
+    setPaymentMethodDropdownOpen(false);
+  };
+
+  const selectStatus = (status: string) => {
+    setFormData(prev => ({ ...prev, paymentStatus: status }));
+    setStatusDropdownOpen(false);
   };
 
   const handleDateSelect = (date?: Date) => {
@@ -77,6 +87,15 @@ export const AddServiceForm = ({
     });
   };
 
+  const getStatusLabel = (status: string) => {
+    switch(status) {
+      case 'paid': return 'Pago';
+      case 'pending': return 'Pendente';
+      case 'late': return 'Atrasado';
+      default: return 'Selecione o status';
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg bg-white">
@@ -87,75 +106,87 @@ export const AddServiceForm = ({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
+        <div className="space-y-6 py-4">
           <div className="space-y-2">
-            <label htmlFor="service-type" className="block text-sm font-medium">
+            <label htmlFor="serviceType" className="block text-sm font-medium">
               Tipo de Serviço
             </label>
-            <Select 
-              value={formData.serviceType} 
-              onValueChange={value => handleSelectChange(value, 'serviceType')}
-            >
-              <SelectTrigger id="service-type" className="w-full bg-white">
-                <SelectValue placeholder="Selecione o tipo de serviço" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                {serviceTypes.map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <button
+                type="button"
+                className="w-full flex items-center justify-between rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none"
+                onClick={() => setServiceDropdownOpen(!serviceDropdownOpen)}
+              >
+                <span>{formData.serviceType || 'Selecione o tipo de serviço'}</span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </button>
+              
+              {serviceDropdownOpen && (
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                  <div className="py-1">
+                    {serviceTypes.map(type => (
+                      <div
+                        key={type}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => selectServiceType(type)}
+                      >
+                        {type}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="client-name" className="block text-sm font-medium">
+            <label htmlFor="clientName" className="block text-sm font-medium">
               Nome do Cliente/Família
             </label>
             <input 
               type="text" 
-              id="client-name" 
+              id="clientName" 
               placeholder="Ex: Família Silva" 
               value={formData.clientName} 
               onChange={handleInputChange} 
-              className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" 
+              className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none" 
               autoComplete="off"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="service-value" className="block text-sm font-medium">
+            <label htmlFor="serviceValue" className="block text-sm font-medium">
               Valor
             </label>
             <input 
               type="text" 
-              id="service-value" 
+              id="serviceValue" 
               placeholder="R$ 0,00" 
               value={formData.serviceValue} 
               onChange={handleInputChange} 
-              className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" 
+              className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none" 
               autoComplete="off"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="service-date" className="block text-sm font-medium">
+            <label htmlFor="serviceDate" className="block text-sm font-medium">
               Data do Serviço
             </label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className={cn(
-                    "w-full justify-start text-left font-normal bg-white", 
-                    !formData.serviceDate && "text-muted-foreground"
-                  )}
+                <button 
+                  type="button"
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none"
                 >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {formData.serviceDate 
-                    ? format(new Date(formData.serviceDate), "dd/MM/yyyy") 
-                    : "Selecione uma data"
-                  }
-                </Button>
+                  <div className="flex items-center">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    <span>{formData.serviceDate 
+                      ? format(new Date(formData.serviceDate), "dd/MM/yyyy") 
+                      : "Selecione uma data"}
+                    </span>
+                  </div>
+                </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 bg-white" align="start">
                 <CalendarComponent 
@@ -170,41 +201,76 @@ export const AddServiceForm = ({
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="payment-method" className="block text-sm font-medium">
+            <label htmlFor="paymentMethod" className="block text-sm font-medium">
               Forma de Pagamento
             </label>
-            <Select 
-              value={formData.paymentMethod} 
-              onValueChange={value => handleSelectChange(value, 'paymentMethod')}
-            >
-              <SelectTrigger id="payment-method" className="w-full bg-white">
-                <SelectValue placeholder="Selecione a forma de pagamento" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                {paymentMethods.map(method => (
-                  <SelectItem key={method} value={method}>{method}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <button
+                type="button"
+                className="w-full flex items-center justify-between rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none"
+                onClick={() => setPaymentMethodDropdownOpen(!paymentMethodDropdownOpen)}
+              >
+                <span>{formData.paymentMethod || 'Selecione a forma de pagamento'}</span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </button>
+              
+              {paymentMethodDropdownOpen && (
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                  <div className="py-1">
+                    {paymentMethods.map(method => (
+                      <div
+                        key={method}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => selectPaymentMethod(method)}
+                      >
+                        {method}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="payment-status" className="block text-sm font-medium">
+            <label htmlFor="paymentStatus" className="block text-sm font-medium">
               Status do Pagamento
             </label>
-            <Select 
-              value={formData.paymentStatus} 
-              onValueChange={value => handleSelectChange(value, 'paymentStatus')}
-            >
-              <SelectTrigger id="payment-status" className="w-full bg-white">
-                <SelectValue placeholder="Selecione o status" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                <SelectItem value="paid">Pago</SelectItem>
-                <SelectItem value="pending">Pendente</SelectItem>
-                <SelectItem value="late">Atrasado</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <button
+                type="button"
+                className="w-full flex items-center justify-between rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none"
+                onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+              >
+                <span>{getStatusLabel(formData.paymentStatus)}</span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </button>
+              
+              {statusDropdownOpen && (
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                  <div className="py-1">
+                    <div
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => selectStatus('paid')}
+                    >
+                      Pago
+                    </div>
+                    <div
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => selectStatus('pending')}
+                    >
+                      Pendente
+                    </div>
+                    <div
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => selectStatus('late')}
+                    >
+                      Atrasado
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -219,7 +285,7 @@ export const AddServiceForm = ({
           <button 
             type="button" 
             onClick={handleSave} 
-            className="premium-button flex items-center space-x-2"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
           >
             <Check className="h-4 w-4" />
             <span>Salvar Serviço</span>

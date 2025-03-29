@@ -16,7 +16,7 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         description: "Por favor, preencha todos os campos obrigatórios.",
         variant: "destructive"
       });
-      return;
+      return false;
     }
 
     try {
@@ -54,7 +54,7 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
     }
   };
 
-  const handleDeleteService = async (id: string) => {
+  const handleDeleteService = async (id: string): Promise<void> => {
     try {
       const { error } = await supabase
         .from('revenues')
@@ -71,7 +71,6 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
       });
       
       fetchServices();
-      return true;
     } catch (error) {
       console.error('Error deleting service:', error);
       toast({
@@ -79,11 +78,10 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         description: "Não foi possível excluir o serviço. Tente novamente mais tarde.",
         variant: "destructive"
       });
-      return false;
     }
   };
 
-  const handleDeleteAllServices = async () => {
+  const handleDeleteAllServices = async (): Promise<void> => {
     try {
       const { error } = await supabase
         .from('revenues')
@@ -100,7 +98,6 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
       });
       
       fetchServices();
-      return true;
     } catch (error) {
       console.error('Error deleting all services:', error);
       toast({
@@ -108,7 +105,6 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         description: "Não foi possível excluir os serviços. Tente novamente mais tarde.",
         variant: "destructive"
       });
-      return false;
     }
   };
 

@@ -61,6 +61,11 @@ export const RevenueManagement = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    await handleDeleteService(id);
+    // No need to return anything as the type is now Promise<void>
+  };
+
   const filteredServices = servicesData.filter(service => {
     const matchesSearch = 
       service.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -125,7 +130,7 @@ export const RevenueManagement = () => {
         <ServiceTable 
           isLoading={isLoading}
           filteredServices={filteredServices}
-          onDeleteService={handleDeleteService}
+          onDeleteService={handleDelete}
           fetchServices={fetchServices}
         />
       </motion.div>
