@@ -1,12 +1,15 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, DollarSign, BarChart3, PieChart, FileText, Menu, X } from 'lucide-react';
+import { ChevronRight, DollarSign, BarChart3, PieChart, FileText, Menu, X, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   const navigationItems = [
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
@@ -17,6 +20,10 @@ const Navbar = () => {
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   // Close mobile menu when route changes
@@ -52,6 +59,17 @@ const Navbar = () => {
                 {item.name}
               </Link>
             ))}
+            
+            {user && (
+              <Button 
+                variant="ghost"
+                className="flex items-center text-sm font-medium text-muted-foreground hover:text-foreground"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -91,6 +109,17 @@ const Navbar = () => {
                 <ChevronRight className="h-4 w-4 ml-auto" />
               </Link>
             ))}
+            
+            {user && (
+              <button
+                className="flex items-center px-3 py-2 rounded-md text-base font-medium w-full text-left text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-5 w-5 mr-3" />
+                Sair
+                <ChevronRight className="h-4 w-4 ml-auto" />
+              </button>
+            )}
           </div>
         </div>
       )}

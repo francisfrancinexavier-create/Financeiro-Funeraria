@@ -3,9 +3,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CardHoverEffect } from '@/components/ui/card-hover-effect';
-import { BarChart3, DollarSign, PieChart, FileText, ArrowRight, TrendingUp, Bell } from 'lucide-react';
+import { BarChart3, DollarSign, PieChart, FileText, ArrowRight, TrendingUp, Bell, LogIn } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
+  const { user } = useAuth();
+  
   const features = [
     {
       title: 'Dashboard Financeiro',
@@ -54,9 +57,9 @@ const Index = () => {
               <DollarSign className="h-8 w-8 text-primary" />
               <span className="ml-2 text-xl font-semibold">FinFunerária</span>
             </div>
-            <Link to="/dashboard" className="premium-button flex items-center space-x-2">
-              <span>Acessar Sistema</span>
-              <ArrowRight className="h-4 w-4" />
+            <Link to={user ? "/dashboard" : "/auth"} className="premium-button flex items-center space-x-2">
+              <span>{user ? 'Acessar Sistema' : 'Entrar'}</span>
+              {user ? <ArrowRight className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
             </Link>
           </div>
         </div>
@@ -78,9 +81,9 @@ const Index = () => {
                 Gerencie finanças, controle receitas e despesas, e tome decisões baseadas em dados com nossa plataforma intuitiva.
               </p>
               <div className="mt-10">
-                <Link to="/dashboard" className="premium-button flex items-center space-x-2 mx-auto w-fit px-8 py-3">
-                  <span>Começar Agora</span>
-                  <ArrowRight className="h-4 w-4" />
+                <Link to={user ? "/dashboard" : "/auth"} className="premium-button flex items-center space-x-2 mx-auto w-fit px-8 py-3">
+                  <span>{user ? 'Acessar Sistema' : 'Começar Agora'}</span>
+                  {user ? <ArrowRight className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
                 </Link>
               </div>
             </motion.div>
@@ -109,8 +112,8 @@ const Index = () => {
               <p className="text-lg text-muted-foreground mb-8">
                 Nosso sistema foi desenvolvido especificamente para ajudar gestores de empresas funerárias a otimizarem suas operações financeiras.
               </p>
-              <Link to="/dashboard" className="text-primary font-medium text-lg animated-underline">
-                Saiba mais sobre nossos recursos
+              <Link to={user ? "/dashboard" : "/auth"} className="text-primary font-medium text-lg animated-underline">
+                {user ? 'Acessar sistema agora' : 'Saiba mais sobre nossos recursos'}
               </Link>
             </motion.div>
           </div>

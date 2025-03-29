@@ -19,6 +19,17 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
       return false;
     }
 
+    // Check if user is authenticated
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      toast({
+        title: "Não autenticado",
+        description: "Você precisa estar logado para adicionar serviços.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     try {
       const newService = {
         service_name: formData.serviceType,
@@ -26,6 +37,7 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         value: parseCurrency(formData.serviceValue),
         date: formData.serviceDate,
         status: formData.paymentStatus as 'paid' | 'pending' | 'late',
+        user_id: sessionData.session.user.id, // Add user_id to the service
       };
 
       const { data, error } = await supabase
@@ -55,11 +67,23 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
   };
 
   const handleDeleteService = async (id: string): Promise<void> => {
+    // Check if user is authenticated
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      toast({
+        title: "Não autenticado",
+        description: "Você precisa estar logado para excluir serviços.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('revenues')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', sessionData.session.user.id); // Ensure user can only delete their own services
 
       if (error) {
         throw error;
@@ -82,11 +106,22 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
   };
 
   const handleDeleteAllServices = async (): Promise<void> => {
+    // Check if user is authenticated
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      toast({
+        title: "Não autenticado",
+        description: "Você precisa estar logado para excluir serviços.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('revenues')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+        .eq('user_id', sessionData.session.user.id); // Delete only the user's services
 
       if (error) {
         throw error;
