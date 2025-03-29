@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -59,7 +58,7 @@ const Index = () => {
             </div>
             <Link to={user ? "/dashboard" : "/auth"} className="premium-button flex items-center space-x-2">
               <span>{user ? 'Acessar Sistema' : 'Entrar'}</span>
-              {user ? <ArrowRight className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+              <LogIn className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -82,8 +81,8 @@ const Index = () => {
               </p>
               <div className="mt-10">
                 <Link to={user ? "/dashboard" : "/auth"} className="premium-button flex items-center space-x-2 mx-auto w-fit px-8 py-3">
-                  <span>{user ? 'Acessar Sistema' : 'Começar Agora'}</span>
-                  {user ? <ArrowRight className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                  <span>{user ? 'Acessar Sistema' : 'Entrar'}</span>
+                  <LogIn className="h-4 w-4" />
                 </Link>
               </div>
             </motion.div>
@@ -110,10 +109,10 @@ const Index = () => {
                 Simplifique a gestão financeira da sua funerária
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Nosso sistema foi desenvolvido especificamente para ajudar gestores de empresas funerárias a otimizarem suas operações financeiras.
+                Sistema exclusivo para gestores autorizados. Acesso restrito e controlado.
               </p>
               <Link to={user ? "/dashboard" : "/auth"} className="text-primary font-medium text-lg animated-underline">
-                {user ? 'Acessar sistema agora' : 'Saiba mais sobre nossos recursos'}
+                {user ? 'Acessar sistema agora' : 'Entrar no sistema'}
               </Link>
             </motion.div>
           </div>
