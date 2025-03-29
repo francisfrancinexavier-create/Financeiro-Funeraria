@@ -66,6 +66,7 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
     }
   };
 
+  // Fixed return type annotation to avoid TypeScript recursive type inference
   const handleDeleteService = async (id: string): Promise<void> => {
     // Check if user is authenticated
     const { data: sessionData } = await supabase.auth.getSession();
@@ -105,6 +106,7 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
     }
   };
 
+  // Fixed return type annotation to avoid TypeScript recursive type inference
   const handleDeleteAllServices = async (): Promise<void> => {
     // Check if user is authenticated
     const { data: sessionData } = await supabase.auth.getSession();
