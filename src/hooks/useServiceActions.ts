@@ -73,23 +73,22 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
   };
 
   const handleDeleteService = async (id: string): Promise<void> => {
-    // Check if user is authenticated
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      toast({
-        title: "Não autenticado",
-        description: "Você precisa estar logado para excluir serviços.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
+      // Check if user is authenticated
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast({
+          title: "Não autenticado",
+          description: "Você precisa estar logado para excluir serviços.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('revenues')
         .delete()
-        .eq('id', id)
-        .eq('user_id', sessionData.session.user.id); // Ensure user can only delete their own services
+        .eq('id', id);
 
       if (error) {
         throw error;
@@ -112,22 +111,22 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
   };
 
   const handleDeleteAllServices = async (): Promise<void> => {
-    // Check if user is authenticated
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      toast({
-        title: "Não autenticado",
-        description: "Você precisa estar logado para excluir serviços.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
+      // Check if user is authenticated
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast({
+          title: "Não autenticado",
+          description: "Você precisa estar logado para excluir serviços.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('revenues')
         .delete()
-        .eq('user_id', sessionData.session.user.id); // Delete only the user's services
+        .neq('id', ''); // Delete all rows
 
       if (error) {
         throw error;
