@@ -43,7 +43,6 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         value: parseCurrency(formData.serviceValue),
         date: formData.serviceDate,
         status: formData.paymentStatus as 'paid' | 'pending' | 'late',
-        user_id: sessionData.session.user.id, // Add user_id to the service
       };
 
       const { data, error } = await supabase
@@ -85,12 +84,14 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         return;
       }
 
+      // Execute deletion without filtering by user_id
       const { error } = await supabase
         .from('revenues')
         .delete()
         .eq('id', id);
 
       if (error) {
+        console.error('Database error when deleting service:', error);
         throw error;
       }
       
@@ -99,8 +100,8 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         description: "Serviço excluído com sucesso."
       });
       
-      fetchServices();
-    } catch (error) {
+      await fetchServices();
+    } catch (error: any) {
       console.error('Error deleting service:', error);
       toast({
         title: "Erro ao excluir serviço",
@@ -123,12 +124,14 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         return;
       }
 
+      // Execute deletion without filtering by user_id
       const { error } = await supabase
         .from('revenues')
         .delete()
         .neq('id', ''); // Delete all rows
 
       if (error) {
+        console.error('Database error when deleting all services:', error);
         throw error;
       }
       
@@ -137,8 +140,8 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         description: "Todos os serviços foram excluídos com sucesso."
       });
       
-      fetchServices();
-    } catch (error) {
+      await fetchServices();
+    } catch (error: any) {
       console.error('Error deleting all services:', error);
       toast({
         title: "Erro ao excluir serviços",
