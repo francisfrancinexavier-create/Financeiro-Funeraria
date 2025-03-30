@@ -1,8 +1,31 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Calendar, FileText, BarChart, PieChart, TrendingUp, DownloadCloud, ExternalLink } from 'lucide-react';
+import { 
+  Calendar, 
+  FileText, 
+  BarChart, 
+  PieChart, 
+  TrendingUp, 
+  DownloadCloud, 
+  ExternalLink, 
+  Download, 
+  Trash2, 
+  AlertCircle 
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useReportActions, ReportData } from '@/hooks/useReportActions';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -43,22 +66,17 @@ export const Reports = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [reportType, setReportType] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [reportFormat, setReportFormat] = useState<string>('pdf');
+  const { reports, isGenerating, generateReport, deleteAllRecords } = useReportActions();
 
-  const handleGenerateReport = () => {
-    setIsGenerating(true);
-    
-    // Simulate report generation
-    setTimeout(() => {
-      setIsGenerating(false);
+  const handleGenerateReport = async () => {
+    if (reportType) {
+      await generateReport(reportType, selectedMonth, selectedYear, reportFormat);
       setReportType(null);
-      
-      // Show a success message or download the report
-      alert('Relatório gerado com sucesso!');
-    }, 2000);
+    }
   };
 
-  const reports = [
+  const reportsList = [
     {
       title: 'Relatório Financeiro Mensal',
       description: 'Resumo detalhado de receitas, despesas e resultados do mês',
@@ -106,27 +124,53 @@ export const Reports = () => {
       transition={{ duration: 0.5 }}
       className="container max-w-7xl mx-auto px-4 py-8"
     >
-      <div className="mb-8">
-        <motion.h1 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-3xl font-bold"
-        >
-          Relatórios
-        </motion.h1>
-        <motion.p 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-muted-foreground"
-        >
-          Geração de relatórios e análises financeiras
-        </motion.p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <motion.h1 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-3xl font-bold"
+          >
+            Relatórios
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-muted-foreground"
+          >
+            Geração de relatórios e análises financeiras
+          </motion.p>
+        </div>
+        
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors">
+              <Trash2 className="h-4 w-4" />
+              <span>Limpar Dados</span>
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Limpar todos os dados?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação irá remover todas as receitas, despesas e relatórios do sistema. 
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={deleteAllRecords} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Limpar dados
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {reports.map((report, index) => (
+        {reportsList.map((report, index) => (
           <ReportCard
             key={report.type}
             title={report.title}
@@ -147,7 +191,7 @@ export const Reports = () => {
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold">
-              {reports.find(r => r.type === reportType)?.title}
+              {reportsList.find(r => r.type === reportType)?.title}
             </h2>
             <button
               onClick={() => setReportType(null)}
@@ -201,6 +245,8 @@ export const Reports = () => {
                 <select
                   id="report-format"
                   className="w-full px-3 py-2 border border-border rounded-lg subtle-ring-focus"
+                  value={reportFormat}
+                  onChange={(e) => setReportFormat(e.target.value)}
                 >
                   <option value="pdf">PDF</option>
                   <option value="excel">Excel</option>
@@ -246,52 +292,52 @@ export const Reports = () => {
       >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-semibold">Relatórios Recentes</h2>
-          <button className="text-sm text-primary font-medium flex items-center space-x-1">
-            <span>Ver todos</span>
-            <ExternalLink className="h-3.5 w-3.5" />
-          </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Nome</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tipo</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Período</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Data de Geração</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { name: 'Relatório Financeiro', type: 'Mensal', period: 'Abril 2024', date: '01/05/2024' },
-                { name: 'Análise de Despesas', type: 'Categorias', period: 'Abril 2024', date: '01/05/2024' },
-                { name: 'Serviços Prestados', type: 'Serviços', period: 'Abril 2024', date: '01/05/2024' },
-                { name: 'Relatório Financeiro', type: 'Mensal', period: 'Março 2024', date: '01/04/2024' },
-                { name: 'Fluxo de Caixa', type: 'Análise', period: 'Q1 2024', date: '10/04/2024' },
-              ].map((report, index) => (
-                <motion.tr 
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.4 + (index * 0.05) }}
-                  className="border-b border-border hover:bg-muted/30 transition-colors"
-                >
-                  <td className="px-4 py-3 text-sm">{report.name}</td>
-                  <td className="px-4 py-3 text-sm">{report.type}</td>
-                  <td className="px-4 py-3 text-sm">{report.period}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{report.date}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button className="p-1 text-muted-foreground hover:text-primary transition-colors">
-                      <Download className="h-4 w-4" />
-                    </button>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {reports.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Nome</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tipo</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Período</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Data de Geração</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reports.map((report, index) => (
+                  <motion.tr 
+                    key={index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.4 + (index * 0.05) }}
+                    className="border-b border-border hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-sm">{report.name}</td>
+                    <td className="px-4 py-3 text-sm">{report.type}</td>
+                    <td className="px-4 py-3 text-sm">{report.period}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{report.date}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button className="p-1 text-muted-foreground hover:text-primary transition-colors">
+                        <Download className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Nenhum relatório gerado</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
+              Selecione um tipo de relatório acima e gere seu primeiro relatório.
+            </p>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );
