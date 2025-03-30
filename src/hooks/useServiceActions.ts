@@ -124,15 +124,33 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         return;
       }
 
-      // Execute deletion without filtering by user_id
-      const { error } = await supabase
+      // Primeiro, busque todos os IDs
+      const { data: allServices, error: fetchError } = await supabase
+        .from('revenues')
+        .select('id');
+
+      if (fetchError) {
+        console.error('Erro ao buscar serviços para exclusão:', fetchError);
+        throw fetchError;
+      }
+
+      if (!allServices || allServices.length === 0) {
+        toast({
+          title: "Nenhum serviço encontrado",
+          description: "Não há serviços para excluir."
+        });
+        return;
+      }
+
+      // Agora exclua todos os serviços encontrados
+      const { error: deleteError } = await supabase
         .from('revenues')
         .delete()
-        .neq('id', ''); // Delete all rows
+        .in('id', allServices.map(service => service.id));
 
-      if (error) {
-        console.error('Database error when deleting all services:', error);
-        throw error;
+      if (deleteError) {
+        console.error('Erro ao excluir todos os serviços:', deleteError);
+        throw deleteError;
       }
       
       toast({
