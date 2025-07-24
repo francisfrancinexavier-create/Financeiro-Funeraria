@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface ClearDataDialogProps {
-  onClearData: () => Promise<void>;
+  onClearData: () => Promise<boolean>;
 }
 
 export const ClearDataDialog = ({ onClearData }: ClearDataDialogProps) => {

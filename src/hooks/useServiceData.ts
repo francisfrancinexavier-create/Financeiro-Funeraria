@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export interface ServiceData {
   id: string;
@@ -18,6 +19,7 @@ export const useServiceData = () => {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const { selectedCompany } = useCompany();
 
   const formatCurrency = (value: number) => {
     return `R$ ${value.toFixed(2).replace('.', ',')}`;
@@ -34,9 +36,11 @@ export const useServiceData = () => {
   };
 
   const fetchServices = async () => {
+    if (!selectedCompany) return;
+    
     setIsLoading(true);
     try {
-      let query = supabase.from('revenues').select('*');
+      let query = supabase.from('revenues').select('*').eq('company_id', selectedCompany.id);
       
       if (selectedStatus) {
         query = query.eq('status', selectedStatus);
@@ -78,7 +82,7 @@ export const useServiceData = () => {
 
   useEffect(() => {
     fetchServices();
-  }, [selectedStatus, startDate, endDate]);
+  }, [selectedStatus, startDate, endDate, selectedCompany]);
 
   return {
     servicesData,

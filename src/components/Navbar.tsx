@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, DollarSign, BarChart3, PieChart, FileText, Menu, X, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { CompanySelector } from '@/components/company/CompanySelector';
 import { Button } from '@/components/ui/button';
 
 const Navbar = () => {
@@ -35,11 +36,12 @@ const Navbar = () => {
     <nav className="sticky top-0 z-50 w-full backdrop-blur-lg bg-white/80 border-b border-gray-100 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center">
+          <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center space-x-2">
               <DollarSign className="h-8 w-8 text-primary" />
               <span className="text-xl font-semibold">FinFunerária</span>
             </Link>
+            {user && <CompanySelector />}
           </div>
 
           {/* Desktop menu */}

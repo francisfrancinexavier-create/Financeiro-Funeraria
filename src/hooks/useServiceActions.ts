@@ -1,6 +1,7 @@
 
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface UseServiceActionsProps {
   fetchServices: () => Promise<void>;
@@ -15,7 +16,18 @@ interface ServiceActions {
 }
 
 export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceActionsProps): ServiceActions => {
+  const { selectedCompany } = useCompany();
+  
   const handleSaveService = async (formData: any): Promise<boolean> => {
+    if (!selectedCompany) {
+      toast({
+        title: "Empresa não selecionada",
+        description: "Por favor, selecione uma empresa antes de adicionar serviços.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     if (!formData.serviceType || !formData.clientName || !formData.serviceValue || !formData.serviceDate || !formData.paymentStatus) {
       toast({
         title: "Campos obrigatórios",
@@ -43,6 +55,7 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         value: parseCurrency(formData.serviceValue),
         date: formData.serviceDate,
         status: formData.paymentStatus as 'paid' | 'pending' | 'late',
+        company_id: selectedCompany.id,
       };
 
       const { data, error } = await supabase
