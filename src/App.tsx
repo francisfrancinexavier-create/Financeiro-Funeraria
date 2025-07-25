@@ -82,44 +82,42 @@ const App = () => (
         <AuthProvider>
           <CompanyProvider>
             <TooltipProvider>
-              {/* Header sempre visível */}
-              <header style={{ display: "flex", alignItems: "center", padding: "16px 32px", borderBottom: "1px solid #eee" }}>
-                <CompanyLogo />
-                <CompanySelector />
-                {/* ...outros itens do header, como navegação... */}
-              </header>
-              {/* Conteúdo principal abaixo do header */}
-              <main>
+              <BrowserRouter>
+                {/* Header sempre visível dentro do BrowserRouter */}
+                <header style={{ display: "flex", alignItems: "center", padding: "16px 32px", borderBottom: "1px solid #eee" }}>
+                  <CompanyLogo />
+                  <CompanySelector />
+                  {/* ...outros itens do header, como navegação... */}
+                </header>
+                {/* Conteúdo principal */}
                 <Toaster />
                 <Sonner />
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/dashboard" element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/revenue" element={
-                      <ProtectedRoute>
-                        <Revenue />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/expenses" element={
-                      <ProtectedRoute>
-                        <Expenses />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/reports" element={
-                      <ProtectedRoute>
-                        <Reports />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </main>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/revenue" element={
+                    <ProtectedRoute>
+                      <Revenue />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/expenses" element={
+                    <ProtectedRoute>
+                      <Expenses />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/reports" element={
+                    <ProtectedRoute>
+                      <Reports />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
             </TooltipProvider>
           </CompanyProvider>
         </AuthProvider>
