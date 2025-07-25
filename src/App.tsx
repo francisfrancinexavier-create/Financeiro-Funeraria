@@ -44,9 +44,11 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 function CompanySelector() {
-  const { companies = [], selectedCompany, setSelectedCompany } = useContext(CompanyContext) || {};
+  const context = useContext(CompanyContext);
+  if (!context) return <span>Carregando empresas...</span>;
+  const { companies = [], selectedCompany, setSelectedCompany } = context;
 
-  if (!Array.isArray(companies) || companies.length === 0) return null;
+  if (!Array.isArray(companies) || companies.length === 0) return <span>Nenhuma empresa disponível</span>;
 
   return (
     <select
@@ -67,10 +69,10 @@ function CompanySelector() {
 }
 
 function CompanyLogo() {
-  const { selectedCompany } = useContext(CompanyContext) || {};
-  if (!selectedCompany?.logoUrl) return null;
+  const context = useContext(CompanyContext);
+  if (!context || !context.selectedCompany?.logoUrl) return null;
   return (
-    <img src={selectedCompany.logoUrl} alt={selectedCompany.name} style={{ height: 40, marginRight: 16 }} />
+    <img src={context.selectedCompany.logoUrl} alt={context.selectedCompany.name} style={{ height: 40, marginRight: 16 }} />
   );
 }
 
@@ -82,13 +84,11 @@ const App = () => (
           <CompanyProvider>
             <TooltipProvider>
               <BrowserRouter>
-                {/* Header sempre visível dentro do BrowserRouter */}
                 <header style={{ display: "flex", alignItems: "center", padding: "16px 32px", borderBottom: "1px solid #eee" }}>
                   <CompanyLogo />
                   <CompanySelector />
                   {/* ...outros itens do header, como navegação... */}
                 </header>
-                {/* Conteúdo principal */}
                 <Toaster />
                 <Sonner />
                 <Routes>
