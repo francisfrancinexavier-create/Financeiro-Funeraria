@@ -44,16 +44,16 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 function CompanySelector() {
-  const { companies, selectedCompany, setSelectedCompany } = useContext(CompanyContext);
+  const { companies = [], selectedCompany, setSelectedCompany } = useContext(CompanyContext) || {};
 
-  if (!companies || companies.length === 0) return null;
+  if (!Array.isArray(companies) || companies.length === 0) return null;
 
   return (
     <select
       value={selectedCompany?.id || ""}
       onChange={e => {
         const company = companies.find(c => c.id === e.target.value);
-        if (company) setSelectedCompany(company);
+        if (company && setSelectedCompany) setSelectedCompany(company);
       }}
       style={{ marginRight: 16 }}
     >
@@ -66,9 +66,8 @@ function CompanySelector() {
   );
 }
 
-// Exemplo de logomarca dinâmica
 function CompanyLogo() {
-  const { selectedCompany } = useContext(CompanyContext);
+  const { selectedCompany } = useContext(CompanyContext) || {};
   if (!selectedCompany?.logoUrl) return null;
   return (
     <img src={selectedCompany.logoUrl} alt={selectedCompany.name} style={{ height: 40, marginRight: 16 }} />
