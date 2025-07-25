@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowDownIcon, ArrowUpIcon, DollarSign, CreditCard, TrendingUp, Clock } from 'lucide-react';
@@ -144,3 +143,5 @@ export const DashboardCards = ({ revenueData, expenseData, isLoading }: Dashboar
     </div>
   );
 };
+
+// StatCard, DashboardCards: calcula valores e tendências do mês

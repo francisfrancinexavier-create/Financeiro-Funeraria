@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight, DollarSign, BarChart3, PieChart, FileText, Menu, X, LogOut } from 'lucide-react';
@@ -130,3 +129,6 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
+// Links: Dashboard, Receitas, Despesas, Relatórios
+// CompanySelector, botão de logout, menu mobile

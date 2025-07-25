@@ -1,3 +1,6 @@
+-- Tabelas: companies, user_companies, revenues, expenses
+-- Políticas RLS iniciais
+
 -- Criar tabela de empresas/unidades
 CREATE TABLE public.companies (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,

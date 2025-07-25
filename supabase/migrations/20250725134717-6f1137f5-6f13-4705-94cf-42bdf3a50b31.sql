@@ -1,3 +1,6 @@
+-- Funções: is_company_admin, get_user_companies
+-- Políticas RLS corrigidas para user_companies, companies, revenues, expenses
+
 -- Fix infinite recursion in user_companies RLS policies
 -- Drop existing problematic policies
 DROP POLICY IF EXISTS "Admins can manage company users" ON user_companies;

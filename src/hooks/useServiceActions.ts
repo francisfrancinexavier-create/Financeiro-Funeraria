@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -188,3 +187,5 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
     handleDeleteAllServices
   };
 };
+// handleSaveService, handleDeleteService, handleDeleteAllServices
+// Usa Supabase e contexto da empresa

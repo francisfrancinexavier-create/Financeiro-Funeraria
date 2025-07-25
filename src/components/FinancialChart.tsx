@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -232,3 +231,6 @@ export const ServicesChart = ({ revenueData }: ServicesChartProps) => {
     </motion.div>
   );
 };
+
+// FlowChart: receitas/despesas por mês
+// ServicesChart: receita por tipo de serviço

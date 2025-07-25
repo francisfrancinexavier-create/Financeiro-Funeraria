@@ -106,3 +106,6 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
     </CompanyContext.Provider>
   );
 };
+
+// Contexto: companies, selectedCompany, selectCompany, isLoading, fetchCompanies
+// Busca empresas do Supabase, seleciona e aplica cor da marca

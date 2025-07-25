@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { DashboardCards } from './DashboardCards';
@@ -186,3 +185,5 @@ export const Dashboard = () => {
     </motion.div>
   );
 };
+
+// Busca receitas/despesas, exibe DashboardCards, FlowChart, ServicesChart, alertas

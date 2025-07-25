@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -150,3 +149,5 @@ const Auth = () => {
 };
 
 export default Auth;
+
+// Formulário de email/senha, listener de sessão, toast de erro/sucesso
