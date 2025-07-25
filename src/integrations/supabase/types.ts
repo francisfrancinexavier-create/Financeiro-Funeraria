@@ -175,7 +175,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_companies: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      is_company_admin: {
+        Args: { company_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
