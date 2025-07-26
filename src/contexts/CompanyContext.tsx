@@ -21,7 +21,7 @@ interface CompanyContextType {
   fetchCompanies: () => void;
 }
 
-const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
+export const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export const useCompany = () => {
   const context = useContext(CompanyContext);

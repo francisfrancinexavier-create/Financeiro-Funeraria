@@ -1,5 +1,6 @@
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
 import { useServiceData } from "./useServiceData";
 import { useState } from "react";
 
@@ -14,6 +15,7 @@ export interface ReportData {
 export const useReportActions = () => {
   const { fetchServices, formatCurrency } = useServiceData();
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const { selectedCompany } = useCompany();
   const [reports, setReports] = useState<ReportData[]>([
     { name: 'Relatório Financeiro', type: 'Mensal', period: 'Abril 2024', date: '01/05/2024' },
     { name: 'Análise de Despesas', type: 'Categorias', period: 'Abril 2024', date: '01/05/2024' },
@@ -31,6 +33,15 @@ export const useReportActions = () => {
     setIsGenerating(true);
     
     try {
+      if (!selectedCompany) {
+        toast({
+          title: "Empresa não selecionada",
+          description: "Por favor, selecione uma empresa antes de gerar relatórios.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
       // Check if user is authenticated
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -56,6 +67,7 @@ export const useReportActions = () => {
       const { data, error } = await supabase
         .from('revenues')
         .select('*')
+        .eq('company_id', selectedCompany.id)
         .gte('date', startDateStr)
         .lte('date', endDateStr);
       
@@ -99,6 +111,15 @@ export const useReportActions = () => {
 
   const deleteAllRecords = async (): Promise<boolean> => {
     try {
+      if (!selectedCompany) {
+        toast({
+          title: "Empresa não selecionada",
+          description: "Por favor, selecione uma empresa antes de limpar os dados.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
       // Check if user is authenticated
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
@@ -113,7 +134,8 @@ export const useReportActions = () => {
       // Limpar receitas (revenues)
       const { data: revenuesData, error: fetchRevenuesError } = await supabase
         .from('revenues')
-        .select('id');
+        .select('id')
+        .eq('company_id', selectedCompany.id);
 
       if (fetchRevenuesError) {
         console.error('Erro ao buscar receitas:', fetchRevenuesError);
@@ -135,7 +157,8 @@ export const useReportActions = () => {
       // Limpar despesas (expenses)
       const { data: expensesData, error: fetchExpensesError } = await supabase
         .from('expenses')
-        .select('id');
+        .select('id')
+        .eq('company_id', selectedCompany.id);
 
       if (fetchExpensesError) {
         console.error('Erro ao buscar despesas:', fetchExpensesError);

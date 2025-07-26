@@ -4,6 +4,7 @@ import { DashboardCards } from './DashboardCards';
 import { FlowChart, ServicesChart } from './FinancialChart';
 import { AlertTriangle, Calendar, CreditCard, Eye } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export const Dashboard = () => {
   const [revenueData, setRevenueData] = useState<any[]>([]);
@@ -11,14 +12,18 @@ export const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showAlerts, setShowAlerts] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
+  const { selectedCompany } = useCompany();
   
   const fetchFinancialData = async () => {
+    if (!selectedCompany) return;
+    
     setIsLoading(true);
     try {
       // Fetch revenues
       const { data: revenues, error: revenueError } = await supabase
         .from('revenues')
         .select('*')
+        .eq('company_id', selectedCompany.id)
         .order('created_at', { ascending: false });
       
       if (revenueError) throw revenueError;
@@ -27,6 +32,7 @@ export const Dashboard = () => {
       const { data: expenses, error: expenseError } = await supabase
         .from('expenses')
         .select('*')
+        .eq('company_id', selectedCompany.id)
         .order('created_at', { ascending: false });
       
       if (expenseError) throw expenseError;
@@ -49,7 +55,7 @@ export const Dashboard = () => {
 
   useEffect(() => {
     fetchFinancialData();
-  }, []);
+  }, [selectedCompany]);
   
   // Generate alerts based on real data
   const generateAlerts = () => {
