@@ -38,7 +38,10 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { user } = useAuth();
 
   const fetchCompanies = async () => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -83,6 +86,10 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     if (user) {
       fetchCompanies();
+    } else {
+      setCompanies([]);
+      setSelectedCompany(null);
+      setIsLoading(false);
     }
   }, [user]);
 

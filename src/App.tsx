@@ -63,6 +63,16 @@ class ErrorBoundary extends React.Component<
   }
 }
 
+// Layout Component for Protected Routes
+const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="min-h-screen bg-background">
+    <Navbar />
+    <main className="pt-16">
+      {children}
+    </main>
+  </div>
+);
+
 function App() {
   return (
     <ErrorBoundary>
@@ -82,12 +92,9 @@ function App() {
                         path="/dashboard"
                         element={
                           <ProtectedRoute>
-                            <div className="min-h-screen bg-background">
-                              <Navbar />
-                              <main className="pt-16">
-                                <Dashboard />
-                              </main>
-                            </div>
+                            <ProtectedLayout>
+                              <Dashboard />
+                            </ProtectedLayout>
                           </ProtectedRoute>
                         }
                       />
@@ -95,12 +102,9 @@ function App() {
                         path="/revenue"
                         element={
                           <ProtectedRoute>
-                            <div className="min-h-screen bg-background">
-                              <Navbar />
-                              <main className="pt-16">
-                                <Revenue />
-                              </main>
-                            </div>
+                            <ProtectedLayout>
+                              <Revenue />
+                            </ProtectedLayout>
                           </ProtectedRoute>
                         }
                       />
@@ -108,12 +112,9 @@ function App() {
                         path="/expenses"
                         element={
                           <ProtectedRoute>
-                            <div className="min-h-screen bg-background">
-                              <Navbar />
-                              <main className="pt-16">
-                                <Expenses />
-                              </main>
-                            </div>
+                            <ProtectedLayout>
+                              <Expenses />
+                            </ProtectedLayout>
                           </ProtectedRoute>
                         }
                       />
@@ -121,12 +122,9 @@ function App() {
                         path="/reports"
                         element={
                           <ProtectedRoute>
-                            <div className="min-h-screen bg-background">
-                              <Navbar />
-                              <main className="pt-16">
-                                <Reports />
-                              </main>
-                            </div>
+                            <ProtectedLayout>
+                              <Reports />
+                            </ProtectedLayout>
                           </ProtectedRoute>
                         }
                       />
