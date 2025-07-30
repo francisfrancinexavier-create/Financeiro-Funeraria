@@ -64,11 +64,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				financial: {
-					income: "#4FD1C5",
-					expense: "#FC8181",
-					neutral: "#A0AEC0",
-					background: "#F7FAFC",
-					card: "rgba(255, 255, 255, 0.9)",
+					income: "hsl(174 72% 56%)",
+					expense: "hsl(0 69% 75%)",
+					neutral: "hsl(214 15% 63%)",
+					background: "hsl(var(--background))",
+					card: "hsl(var(--card))",
 				}
 			},
 			borderRadius: {
