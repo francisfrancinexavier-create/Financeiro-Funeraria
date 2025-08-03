@@ -15,6 +15,7 @@ import Dashboard from '@/pages/Dashboard';
 import Revenue from '@/pages/Revenue';
 import Expenses from '@/pages/Expenses';
 import Reports from '@/pages/Reports';
+import AdminPage from '@/pages/Admin';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -124,6 +125,16 @@ function App() {
                           <ProtectedRoute>
                             <ProtectedLayout>
                               <Reports />
+                            </ProtectedLayout>
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin"
+                        element={
+                          <ProtectedRoute>
+                            <ProtectedLayout>
+                              <AdminPage />
                             </ProtectedLayout>
                           </ProtectedRoute>
                         }

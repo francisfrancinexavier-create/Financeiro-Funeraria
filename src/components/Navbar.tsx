@@ -1,15 +1,17 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, DollarSign, BarChart3, PieChart, FileText, Menu, X, LogOut } from 'lucide-react';
+import { ChevronRight, DollarSign, BarChart3, PieChart, FileText, Menu, X, LogOut, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { CompanySelector } from '@/components/company/CompanySelector';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { isAdmin } = useUserRole();
 
   const navigationItems = [
     { name: 'Dashboard', href: '/dashboard', icon: BarChart3 },
@@ -61,6 +63,21 @@ const Navbar = () => {
               </Link>
             ))}
             
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={cn(
+                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+                  location.pathname === "/admin"
+                    ? "text-primary bg-primary/5"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Admin
+              </Link>
+            )}
+            
             {user && (
               <Button 
                 variant="ghost"
@@ -110,6 +127,22 @@ const Navbar = () => {
                 <ChevronRight className="h-4 w-4 ml-auto" />
               </Link>
             ))}
+            
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={cn(
+                  "flex items-center px-3 py-2 rounded-md text-base font-medium",
+                  location.pathname === "/admin"
+                    ? "text-primary bg-primary/5"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                <Settings className="h-5 w-5 mr-3" />
+                Admin
+                <ChevronRight className="h-4 w-4 ml-auto" />
+              </Link>
+            )}
             
             {user && (
               <button
