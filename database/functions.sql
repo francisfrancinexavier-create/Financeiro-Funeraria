@@ -13,7 +13,7 @@ RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = ''
+SET search_path = ''.
 AS $$
   SELECT EXISTS(
     SELECT 1 FROM public.user_companies uc
