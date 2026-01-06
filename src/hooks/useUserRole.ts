@@ -21,9 +21,9 @@ export const useUserRole = () => {
           .select('role')
           .eq('user_id', user.id)
           .eq('role', 'admin')
-          .maybeSingle();
+          .single();
 
-        if (error) {
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
           console.error('Error checking user role:', error);
         }
 
