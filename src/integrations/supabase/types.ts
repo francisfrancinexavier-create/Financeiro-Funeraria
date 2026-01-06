@@ -7,13 +7,169 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
+  // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          brand_color: string | null
+          city: string
+          cnpj: string
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          brand_color?: string | null
+          city: string
+          cnpj: string
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          brand_color?: string | null
+          city?: string
+          cnpj?: string
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          category: string
+          company_id: string | null
+          created_at: string | null
+          description: string
+          due_date: string
+          id: string
+          is_paid: boolean | null
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          category: string
+          company_id?: string | null
+          created_at?: string | null
+          description: string
+          due_date: string
+          id?: string
+          is_paid?: boolean | null
+          updated_at?: string | null
+          value: number
+        }
+        Update: {
+          category?: string
+          company_id?: string | null
+          created_at?: string | null
+          description?: string
+          due_date?: string
+          id?: string
+          is_paid?: boolean | null
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revenues: {
+        Row: {
+          client: string
+          company_id: string | null
+          created_at: string | null
+          date: string
+          id: string
+          service_name: string
+          status: string
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          client: string
+          company_id?: string | null
+          created_at?: string | null
+          date: string
+          id?: string
+          service_name: string
+          status: string
+          updated_at?: string | null
+          value: number
+        }
+        Update: {
+          client?: string
+          company_id?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          service_name?: string
+          status?: string
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_companies: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -24,7 +180,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
+          role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
@@ -40,16 +196,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_companies: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
         }
+        Returns: boolean
+      }
+      is_company_admin: {
+        Args: { company_uuid: string }
         Returns: boolean
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -177,7 +341,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "user"],
     },
   },
 } as const
