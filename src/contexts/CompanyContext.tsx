@@ -21,7 +21,7 @@ interface CompanyContextType {
   fetchCompanies: () => void;
 }
 
-const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
+export const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export const useCompany = () => {
   const context = useContext(CompanyContext);
@@ -38,7 +38,10 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { user } = useAuth();
 
   const fetchCompanies = async () => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       // Busca empresas associadas ao usuário logado
@@ -84,6 +87,10 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     if (user) {
       fetchCompanies();
+    } else {
+      setCompanies([]);
+      setSelectedCompany(null);
+      setIsLoading(false);
     }
   }, [user]);
 

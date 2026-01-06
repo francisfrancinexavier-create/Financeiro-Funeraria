@@ -34,7 +34,20 @@ export const CompanySelector = () => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="flex items-center gap-2 px-3 py-2 h-auto">
-          <Building2 className="h-4 w-4" />
+          {selectedCompany.logo_url ? (
+            <img
+              src={selectedCompany.logo_url}
+              alt={`${selectedCompany.name} logo`}
+              className="w-6 h-6 object-contain rounded"
+            />
+          ) : (
+            <div 
+              className="w-6 h-6 rounded flex items-center justify-center"
+              style={{ backgroundColor: selectedCompany.brand_color }}
+            >
+              <Building2 className="h-4 w-4 text-white" />
+            </div>
+          )}
           <div className="flex flex-col items-start">
             <span className="text-sm font-medium">{selectedCompany.name}</span>
             <span className="text-xs text-muted-foreground">
@@ -54,7 +67,20 @@ export const CompanySelector = () => {
             }`}
           >
             <div className="flex items-center gap-2 w-full">
-              <Building2 className="h-4 w-4" style={{ color: company.brand_color }} />
+              {company.logo_url ? (
+                <img
+                  src={company.logo_url}
+                  alt={`${company.name} logo`}
+                  className="w-5 h-5 object-contain rounded"
+                />
+              ) : (
+                <div 
+                  className="w-5 h-5 rounded flex items-center justify-center"
+                  style={{ backgroundColor: company.brand_color }}
+                >
+                  <Building2 className="h-3 w-3 text-white" />
+                </div>
+              )}
               <span className="font-medium">{company.name}</span>
             </div>
             <span className="text-xs text-muted-foreground">

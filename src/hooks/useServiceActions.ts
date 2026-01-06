@@ -136,10 +136,20 @@ export const useServiceActions = ({ fetchServices, parseCurrency }: UseServiceAc
         return;
       }
 
-      // Primeiro, busque todos os IDs
+      if (!selectedCompany) {
+        toast({
+          title: "Empresa não selecionada",
+          description: "Por favor, selecione uma empresa antes de excluir serviços.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Primeiro, busque todos os IDs da empresa selecionada
       const { data: allServices, error: fetchError } = await supabase
         .from('revenues')
-        .select('id');
+        .select('id')
+        .eq('company_id', selectedCompany.id);
 
       if (fetchError) {
         console.error('Erro ao buscar serviços para exclusão:', fetchError);

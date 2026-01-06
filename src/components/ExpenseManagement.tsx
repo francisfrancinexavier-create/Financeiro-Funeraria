@@ -4,6 +4,7 @@ import { Search, Plus, Check, Calendar, Filter, Download, MoreHorizontal, Credit
 import { cn } from '@/lib/utils';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface ExpenseData {
   id: string;
@@ -37,6 +38,7 @@ export const ExpenseManagement = () => {
   const [expensesData, setExpensesData] = useState<ExpenseData[]>([]);
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { selectedCompany } = useCompany();
   
   const [formData, setFormData] = useState({
     description: '',
@@ -47,9 +49,11 @@ export const ExpenseManagement = () => {
   });
 
   const fetchExpenses = async () => {
+    if (!selectedCompany) return;
+    
     setIsLoading(true);
     try {
-      let query = supabase.from('expenses').select('*');
+      let query = supabase.from('expenses').select('*').eq('company_id', selectedCompany.id);
       
       if (selectedStatus !== null) {
         query = query.eq('is_paid', selectedStatus);
@@ -86,7 +90,7 @@ export const ExpenseManagement = () => {
 
   useEffect(() => {
     fetchExpenses();
-  }, [selectedStatus]);
+  }, [selectedStatus, selectedCompany]);
 
   const formatCurrency = (value: number) => {
     return `R$ ${value.toFixed(2).replace('.', ',')}`;
@@ -126,6 +130,15 @@ export const ExpenseManagement = () => {
   });
 
   const handleSaveExpense = async () => {
+    if (!selectedCompany) {
+      toast({
+        title: "Empresa não selecionada",
+        description: "Por favor, selecione uma empresa antes de adicionar despesas.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!formData.description || !formData.category || !formData.value || !formData.dueDate) {
       toast({
         title: "Campos obrigatórios",
@@ -142,6 +155,7 @@ export const ExpenseManagement = () => {
         value: parseCurrency(formData.value),
         due_date: formData.dueDate,
         is_paid: formData.isPaid,
+        company_id: selectedCompany.id,
       };
 
       const { data, error } = await supabase
@@ -207,11 +221,20 @@ export const ExpenseManagement = () => {
   };
 
   const handleDeleteAllExpenses = async () => {
+    if (!selectedCompany) {
+      toast({
+        title: "Empresa não selecionada",
+        description: "Por favor, selecione uma empresa antes de excluir despesas.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('expenses')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+        .eq('company_id', selectedCompany.id);
 
       if (error) {
         throw error;
