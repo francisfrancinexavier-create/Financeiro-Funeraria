@@ -39,23 +39,24 @@ export const CompanyProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const fetchCompanies = async () => {
     if (!user) return;
-    
     setIsLoading(true);
     try {
+      // Busca empresas associadas ao usuário logado
       const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .order('name');
+        .from('user_companies')
+        .select('company_id, companies(*)')
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
-      const typedData = (data || []) as Company[];
+      // Extrai as empresas do relacionamento
+      const typedData = (data || []).map((uc: any) => uc.companies) as Company[];
       setCompanies(typedData);
-      
+
       // Se não há empresa selecionada, seleciona a primeira
       if (!selectedCompany && typedData && typedData.length > 0) {
         const savedCompanyId = localStorage.getItem('selectedCompanyId');
-        const companyToSelect = savedCompanyId 
+        const companyToSelect = savedCompanyId
           ? typedData.find(c => c.id === savedCompanyId) || typedData[0]
           : typedData[0];
         setSelectedCompany(companyToSelect);
